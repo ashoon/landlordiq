@@ -1,0 +1,179 @@
+import { getSummaryStats } from './tenants.js'
+import { getData, setData } from './store.js'
+import { getTrackingStart } from './tracking.js'
+
+/** Maintenance categories offered when logging an expense (the pie chart's slices). */
+export const EXPENSE_CATEGORIES = ['General Repairs', 'Plumbing', 'Electrical', 'Other']
+
+function readExpenses() {
+  return getData('expenses')
+}
+
+/**
+ * Returns the maintenance expenses the user logged for a month, newest first.
+ *
+ * @param {string} monthKey - "YYYY-MM"
+ * @returns {Array<{ id: string, month: string, category: string, amount: number, note: string }>}
+ */
+export function getExpenses(monthKey) {
+  // Entries in categories that no longer exist (e.g. HVAC) are ignored
+  return readExpenses()
+    .filter((e) => e.month === monthKey && EXPENSE_CATEGORIES.includes(e.category))
+    .reverse()
+}
+
+/**
+ * Validates a maintenance expense entry.
+ *
+ * @param {{ category: string, amount: number|string }} fields
+ * @returns {string | null} error message, or null when valid
+ */
+export function validateExpense(fields) {
+  if (!EXPENSE_CATEGORIES.includes(fields.category)) return 'Choose a category.'
+  const amount = Number(fields.amount)
+  if (!Number.isFinite(amount) || amount <= 0) return 'Amount must be greater than 0.'
+  return null
+}
+
+/**
+ * Logs a maintenance expense against a month, so the pie chart and KPIs pick it up.
+ *
+ * @param {string} monthKey - "YYYY-MM"
+ * @param {{ category: string, amount: number|string, note?: string }} fields
+ */
+export function addExpense(monthKey, fields) {
+  const expenses = readExpenses()
+  expenses.push({
+    id: `E${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    month: monthKey,
+    category: fields.category,
+    amount: Number(fields.amount),
+    note: String(fields.note ?? '').trim(),
+  })
+  setData('expenses', expenses)
+}
+
+/**
+ * Deletes a logged maintenance expense.
+ *
+ * @param {string} id
+ */
+export function deleteExpense(id) {
+  setData('expenses', readExpenses().filter((e) => e.id !== id))
+}
+
+/** Logged maintenance expenses for a month, totalled by category. */
+function maintenanceCostsFor(monthKey) {
+  // Built in EXPENSE_CATEGORIES order so the pie chart legend matches the form
+  const costs = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c, 0]))
+  for (const e of getExpenses(monthKey)) {
+    costs[e.category] += e.amount
+  }
+  return costs
+}
+
+function readTaxes() {
+  return getData('taxes')
+}
+
+/**
+ * Returns the recorded annual tax payments, newest tax year first.
+ *
+ * @returns {Array<{ id: string, year: number, amount: number, paidDate: string, note: string }>}
+ */
+export function getTaxPayments() {
+  return readTaxes().sort((a, b) => b.year - a.year)
+}
+
+/**
+ * Validates an annual tax payment. Taxes are paid once a year, so each tax year
+ * can only be recorded once.
+ *
+ * @param {{ year: number|string, amount: number|string, paidDate: string }} fields
+ * @returns {string | null} error message, or null when valid
+ */
+export function validateTaxPayment(fields) {
+  const year = Number(fields.year)
+  const amount = Number(fields.amount)
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) return 'Enter a valid tax year.'
+  if (!Number.isFinite(amount) || amount <= 0) return 'Amount must be greater than 0.'
+  if (!fields.paidDate) return 'Date paid is required.'
+  if (readTaxes().some((t) => t.year === year)) {
+    return `A ${year} tax payment is already recorded. Delete it first to replace it.`
+  }
+  return null
+}
+
+/**
+ * Records the annual tax payment. It counts as an expense in the month it was paid
+ * (cash basis), so that month's net operating income absorbs the full amount.
+ *
+ * @param {{ year: number|string, amount: number|string, paidDate: string, note?: string }} fields
+ */
+export function addTaxPayment(fields) {
+  const taxes = readTaxes()
+  taxes.push({
+    id: `T${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    year: Number(fields.year),
+    amount: Number(fields.amount),
+    paidDate: fields.paidDate,
+    note: String(fields.note ?? '').trim(),
+  })
+  setData('taxes', taxes)
+}
+
+/**
+ * Deletes a recorded tax payment.
+ *
+ * @param {string} id
+ */
+export function deleteTaxPayment(id) {
+  setData('taxes', readTaxes().filter((t) => t.id !== id))
+}
+
+/** Total tax paid in a calendar month ("YYYY-MM"), by payment date. */
+function taxPaidIn(monthKey) {
+  return readTaxes()
+    .filter((t) => t.paidDate.slice(0, 7) === monthKey)
+    .reduce((sum, t) => sum + t.amount, 0)
+}
+
+/**
+ * Returns financial data for the (up to) 6 months ending at the selected month, never
+ * reaching back before the month tracking started.
+ * Rent figures are computed live from tenant payment data; maintenance costs are the
+ * expenses the user logged for that exact month. `propertyTax` is the annual tax paid
+ * in that month (zero in every other month).
+ *
+ * @param {string} monthKey - selected month, "YYYY-MM"
+ * @returns {{ months: Array<Object>, selected: Object }} `selected` is the last entry
+ */
+export function getFinancials(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number)
+
+  const start = getTrackingStart()
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const date = new Date(y, m - 1 - (5 - i), 1)
+    return { date, key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` }
+  }).filter(({ key }) => key >= start).map(({ date, key }) => {
+    const stats = getSummaryStats(key)
+
+    return {
+      maintenanceCosts: maintenanceCostsFor(key),
+      propertyTax: taxPaidIn(key),
+      month: key,
+      label: date.toLocaleDateString('en-US', { month: 'short' }),
+      rentExpected: stats.totalExpected,
+      rentCollected: stats.totalCollected,
+      rentDueSoon: stats.totalDueSoon,
+      rentUpcoming: stats.totalUpcoming,
+      rentOverdue: stats.totalOverdue,
+      vacancyLoss: stats.vacancyLoss,
+      vacantUnits: stats.vacant,
+      occupancyRate: stats.total ? ((stats.total - stats.vacant) / stats.total) * 100 : 0,
+      collectionRate: stats.totalExpected ? (stats.totalCollected / stats.totalExpected) * 100 : 0,
+    }
+  })
+
+  return { months, selected: months[months.length - 1] }
+}
