@@ -82,9 +82,13 @@ Needed only if teammates use different Google accounts. Without it, the **Open s
 
 1. In the same project: **APIs & Services → Library** → search **Google Picker API** → **Enable**.
 2. **APIs & Services → Credentials → Create credentials → API key.** Then **Edit** the key: under
-   *Application restrictions* choose **Websites** and add `http://localhost:5173/*` and
-   `https://<your-github-username>.github.io/*`; under *API restrictions* allow only **Google Picker API**.
-   The key ships in the page, so it is not secret, but the restrictions stop others from using it.
+   *API restrictions* choose **Restrict key** and allow only **Google Picker API**. Leave
+   *Application restrictions* on **None**.
+   The key ships in the page, so it is not secret; the Picker-only restriction means it can't be used for
+   anything else.
+   > **Do not use the *Websites* restriction.** It was tried with `https://<user>.github.io/*` and
+   > `http://localhost:5173/*` and Google's picker rejected the key with "The API developer key is invalid".
+   > With *Application restrictions* set to **None** the picker works.
 3. Put it in `.env.local` as `VITE_GOOGLE_API_KEY=<key>` and restart `npm run dev`. For the hosted app, add a
    repository variable named `GOOGLE_API_KEY` (next to `GOOGLE_CLIENT_ID`).
 4. Add each teammate's Google email as a **test user** (consent screen → Audience), same as step 3 above.
@@ -133,8 +137,8 @@ tenants from Drive after you click **Connect Google Drive**.
 Notes: a teammate's device that already has its own data is compared with the shared file and asked which to
 keep, so use a fresh browser or profile for the first connection. Whoever owns the file can stop sharing at any time
 (the teammate's app then reports the file can't be opened). Anyone with Editor access can see and change all tenant
-data. The picker only grants the app access to the one file chosen. I have not been able to test this with a real
-second Google account, so try it once with a teammate before relying on it.
+data. The picker only grants the app access to the one file chosen. This has been tried once with a second Google
+account on desktop (units loaded after the share settings above were fixed). It has not yet been checked on a phone.
 
 ### Adding a family member (own login, shared file)
 
@@ -147,8 +151,14 @@ steps below repeat what is above in checklist form.
    email as a **test user**.
 2. On your own device, click **Connect Google Drive** so the app creates `landlordiq-data.json`.
 3. In Drive, open **My Drive → Colombia → Apartments**, right-click `landlordiq-data.json` → **Share**, and add
-   each person as **Editor**. In the share settings, turn off *Editors can change permissions and share* so
-   they can't pass the file on.
+   each person as **Editor**. Keep **General access** on *Restricted*: "Anyone with the link" does not let the
+   app open the file (the `drive.file` permission only covers files the app created or the user picked), and
+   it would expose your tenant data.
+4. Open the share **Settings** (gear icon) and set:
+   - *Allow editors to change permissions and share*: **off**, so they can't pass the file on.
+   - *People who can download, copy, print, and access via Gemini*: tick **Editors**. If it is off, a second
+     account can pick the file but the app fails with `Google Drive error 403: This file cannot be downloaded
+     by the user`.
 
 **Each person, once per device**
 
@@ -215,6 +225,10 @@ Any other static host (Netlify, Vercel, an S3 bucket…) also works: build with
 | Popup says `redirect_uri_mismatch` / `origin_mismatch` | The page's origin isn't in **Authorized JavaScript origins** (check scheme, port, no trailing slash), or it was added moments ago. |
 | `Access blocked: LandlordIQ has not completed the Google verification process` | Your account isn't in **Test users** while the app is in Testing. |
 | "Drive error 403" in the header | Drive API not enabled in the project, or the account isn't a test user. |
+| `Google Drive error 403: This file cannot be downloaded by the user` | The file's share **Settings** don't let Editors download it. Tick **Editors** under "People who can download, copy, print, and access via Gemini". |
+| Picker says "The API developer key is invalid" | The API key has a **Websites** application restriction. Set *Application restrictions* to **None** (keep the Picker-only API restriction). |
+| `Open shared file` is missing | `VITE_GOOGLE_API_KEY` is empty in the build. For the hosted app set the `GOOGLE_API_KEY` **repository** variable (not an environment variable) and re-run the deploy. |
+| Shared file picked but it shows no units | The file picked is empty, or a new empty file was created for that account. Use **Disconnect**, then **Open shared file** and pick the owner's file. |
 | Asked to sign in again about weekly | Consent screen is in Testing mode (see above). |
 | Popup is blocked | Click **Connect / Reconnect** again. Browsers only allow the popup straight after a click. |
 
