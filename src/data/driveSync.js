@@ -216,7 +216,7 @@ async function pickFile() {
     new picker.PickerBuilder()
       .setAppId(APP_ID)
       .setDeveloperKey(API_KEY)
-      .setOauthToken(token.value)
+      .setOAuthToken(token.value)
       .setTitle(`Choose ${FILE_NAME}`)
       .addView(view(true))
       .addView(view(false))
