@@ -59,6 +59,12 @@ const CONFLICT_MESSAGE =
 
 class AuthError extends Error {}
 
+/** A fetch() that failed before any response arrived (offline, DNS, blocked by the browser). */
+class NetworkError extends Error {}
+
+/** A Google script (sign-in or file picker) that couldn't be loaded, often blocked by a content blocker. */
+class ScriptLoadError extends Error {}
+
 class DriveError extends Error {
   constructor(status, detail) {
     super(`Google Drive error ${status}${detail ? `: ${detail}` : ''}`)
@@ -141,12 +147,15 @@ function isOffline() {
 }
 
 function handleError(error) {
-  if (error instanceof AuthError || (error instanceof DriveError && error.status === 401)) {
+  console.error('[LandlordIQ] Drive sync error:', error)
+  if (error instanceof ScriptLoadError) {
+    setStatus('error', `${error.message} A content blocker or privacy setting may be blocking Google; try disabling it for this site.`)
+  } else if (error instanceof AuthError || (error instanceof DriveError && error.status === 401)) {
     token = null
     setStatus('needs-auth', 'Sign in again to keep syncing with Google Drive.')
   } else if (error instanceof DriveError && error.status === 403) {
     setStatus('error', `${error.message}. Check the Google Cloud setup (Drive API enabled, test user added).`)
-  } else if (error instanceof TypeError || isOffline()) {
+  } else if (error instanceof NetworkError || isOffline()) {
     setStatus('offline', "Can't reach Google Drive. Changes are saved on this device and will sync when you're back online.")
   } else {
     setStatus('error', error?.message || 'Something went wrong while syncing with Google Drive.')
@@ -169,7 +178,7 @@ function loadGis() {
       script.onload = () => resolve()
       script.onerror = () => {
         gisPromise = null
-        reject(new TypeError("Couldn't load Google sign-in."))
+        reject(new ScriptLoadError("Couldn't load Google sign-in."))
       }
       document.head.appendChild(script)
     })
@@ -183,7 +192,7 @@ function loadPicker() {
   pickerPromise ??= new Promise((resolve, reject) => {
     const fail = () => {
       pickerPromise = null
-      reject(new TypeError("Couldn't load the Google file picker."))
+      reject(new ScriptLoadError("Couldn't load the Google file picker."))
     }
     const script = document.createElement('script')
     script.src = 'https://apis.google.com/js/api.js'
@@ -262,10 +271,15 @@ async function ensureToken() {
 // ---------------------------------------------------------------- Drive API
 
 async function api(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: { Authorization: `Bearer ${token.value}`, ...options.headers },
-  })
+  let response
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: { Authorization: `Bearer ${token.value}`, ...options.headers },
+    })
+  } catch (error) {
+    throw new NetworkError(error?.message || 'Network request failed')
+  }
   if (!response.ok) {
     let detail = ''
     try {
