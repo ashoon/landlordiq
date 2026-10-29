@@ -55,6 +55,7 @@ landlordiq/
 │   │   ├── tenants.js                  # Unit / tenancy / payment data-access helpers (via store.js)
 │   │   ├── financials.js               # Expenses, taxes, up-to-6-month financials (via store.js)
 │   │   ├── tracking.js                 # Tracking start month (settings); hides earlier months, deletes nothing
+│   │   ├── insights.js                 # Tenant insights: who pays late / in parts (computed, nothing stored)
 │   │   ├── currency.js                 # COP formatting + "mil" helpers (number format follows the language)
 │   │   ├── i18n.js                     # English/Spanish: t(), getLanguage/setLanguage, locale date helpers
 │   │   ├── translations.es.js          # Spanish texts, keyed by the English text
@@ -79,7 +80,8 @@ landlordiq/
 │           ├── RentBarChart.jsx        # Recharts BarChart — Expected vs Collected
 │           ├── MaintenancePie.jsx      # Recharts PieChart — maintenance by category
 │           ├── MaintenanceExpenses.jsx # Form + list to log maintenance expenses for the selected month
-│           └── TaxPayments.jsx         # Annual property tax: record/list/delete payments
+│           ├── TaxPayments.jsx         # Annual property tax: record/list/delete payments
+│           └── TenantInsights.jsx      # Table: who pays late / in parts (flags under the tenant name)
 └── landlordiq-demo/
     └── plans/
         ├── 01-architecture-overview.md
@@ -241,6 +243,24 @@ the unit stays **unpaid** (status still follows the due date). `getAllTenants()`
 `getSummaryStats()` counts `amountPaid` in `totalCollected` and only the `balance` in the overdue / due-soon / upcoming
 totals. Marking unpaid clears all part payments; marking paid in full keeps the list as history. Dashboard keeps the
 tile in place after a part payment.
+
+### Tenant insights (pays late / pays in parts)
+
+`src/data/insights.js` works out, from payments already stored, how each tenant has paid. **Nothing new is stored** and it
+never changes status, order, due dates or totals. `getTenantInsights(month)` (sorted: flagged first) and
+`getTenantInsightMap(month)` (Map keyed `payKey ?? id`) read the last `WINDOW_MONTHS` (6) months ending at `month`
+through `getAllTenants()`, never before the tracking start, and group by `payKey ?? id` so a replacement tenant has
+their own record. Rules (constants `GRACE_DAYS` 7, `FLAG_THRESHOLD` 2):
+
+- A month is **judged** once the rent is fully paid, or today is more than 7 days past its due date (edited due dates count).
+- **Late**: full rent arrived more than 7 days after the due date, or is still not fully paid. A past month nobody
+  marked therefore counts as late (accepted by the owner). A paid month with no paid date counts as on time.
+- **Part-payment month**: the month has dated payments that are not a single payment covering the rent.
+- **Pays late** = 2 or more late months; **Pays in parts** = 2 or more part-payment months.
+
+Shown in `analytics/TenantInsights.jsx` (table for the selected month, `*` marks fewer than 6 judged months) and as a
+violet **Watch** tag beside the status badge in `UnitCard.jsx` (reasons in its hover/aria text; never on vacant tiles).
+`Dashboard.jsx` joins the map to the tiles. The badges use violet/sky so they are not mistaken for a payment status colour.
 
 ### Languages (English / Spanish)
 

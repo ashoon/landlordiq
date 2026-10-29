@@ -5,6 +5,7 @@ import RentBarChart from './RentBarChart.jsx'
 import MaintenancePie from './MaintenancePie.jsx'
 import MaintenanceExpenses from './MaintenanceExpenses.jsx'
 import TaxPayments from './TaxPayments.jsx'
+import TenantInsights from './TenantInsights.jsx'
 
 /**
  * Analytics — orchestrates all financial analytics sections, including the maintenance
@@ -27,6 +28,7 @@ export default function Analytics({ refreshKey, month }) {
         <MaintenanceExpenses month={month} onChange={() => setExpensesVersion((v) => v + 1)} />
       </div>
       <TaxPayments onChange={() => setExpensesVersion((v) => v + 1)} />
+      <TenantInsights month={month} />
     </div>
   )
 }

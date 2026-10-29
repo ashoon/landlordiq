@@ -13,15 +13,19 @@ import EditableDate from './EditableDate.jsx'
  * "Mark as Paid" opens a small panel: pay the full rent, or record a part payment (entered in COP mil),
  * which shows how many days of the month it covers (see DAYS_PER_MONTH) and the balance still owed.
  *
+ * A flagged tenant (pays late and/or in parts, see src/data/insights.js) also gets a small "Watch" tag next
+ * to the status badge. It is information only: it never changes the tile's colour, status or position.
+ *
  * @param {{
  *   unit: Object,
+ *   insight?: Object,
  *   onTogglePaid: (id: string, paid: boolean) => void,
  *   onRecordPayment: (id: string, amount: number) => void,
  *   onPaidDateChange: (id: string, date: string) => void,
  *   onDueDateChange: (id: string, date: string) => void
  * }} props
  */
-export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDateChange, onDueDateChange }) {
+export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment, onPaidDateChange, onDueDateChange }) {
   const [paying, setPaying] = useState(false)
   const [amountText, setAmountText] = useState('')
   // Preview of the part payment being typed (days covered, balance); null until it is a valid amount
@@ -70,6 +74,16 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
 
   const daysLabel = unit.status === 'vacant' ? null : getDaysLabel()
 
+  // Why the tenant is on watch, e.g. "Pays late: 3 of 5 months"
+  const watchReasons =
+    unit.status !== 'vacant' && insight
+      ? [
+          insight.paysLate && t('Pays late: {n} of {total} months', { n: insight.lateMonths, total: insight.judged }),
+          insight.paysInParts && t('Pays in parts: {n} of {total} months', { n: insight.partMonths, total: insight.judged }),
+        ].filter(Boolean)
+      : []
+  const watchText = watchReasons.length > 0 ? `${t('Watch')}: ${watchReasons.join('; ')}` : null
+
   function getVacancyLabel() {
     if (!unit.vacantSince) return t('No tenant')
     const n = Math.max(0, -getDaysRelative(unit.vacantSince))
@@ -82,8 +96,19 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
         <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
           {unit.address}
         </span>
-        <span className={`text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full ${badgeStyles[unit.status]}`}>
-          {badgeLabels[unit.status]}
+        <span className="flex items-center gap-1">
+          {watchText && (
+            <span
+              title={watchText}
+              aria-label={watchText}
+              className="text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-violet-100 text-violet-800"
+            >
+              {t('Watch')}
+            </span>
+          )}
+          <span className={`text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full ${badgeStyles[unit.status]}`}>
+            {badgeLabels[unit.status]}
+          </span>
         </span>
       </div>
 

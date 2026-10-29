@@ -144,6 +144,25 @@ export default {
   'A {year} tax payment is already recorded. Delete it first to replace it.':
     'Ya hay un pago del impuesto {year}. Elimínalo primero para reemplazarlo.',
 
+  // Tenant insights
+  'Tenant insights': 'Análisis de inquilinos',
+  'Late = the full rent arrived more than {days} days after the due date, or has not arrived yet. Looks at the last {months} months; a tenant is flagged at {count} or more.':
+    'Atraso = el arriendo completo llegó más de {days} días después del vencimiento, o aún no ha llegado. Mira los últimos {months} meses; se marca al inquilino con {count} o más.',
+  'No tenants to show yet.': 'Aún no hay inquilinos para mostrar.',
+  'Months judged': 'Meses evaluados',
+  'Late months': 'Meses con atraso',
+  'Avg days late': 'Días de atraso (prom.)',
+  'Part-payment months': 'Meses con pago parcial',
+  'Balance owed': 'Saldo pendiente',
+  'Pays late': 'Paga tarde',
+  'Pays in parts': 'Paga en partes',
+  'Short history': 'Poco historial',
+  Watch: 'Vigilar',
+  'Pays late: {n} of {total} months': 'Paga tarde: {n} de {total} meses',
+  'Pays in parts: {n} of {total} months': 'Paga en partes: {n} de {total} meses',
+  '* Fewer than {months} months of history. A low count may just mean little data.':
+    '* Menos de {months} meses de historial. Un número bajo puede significar solo pocos datos.',
+
   // Google Drive
   'Google Drive: not connected': 'Google Drive: sin conectar',
   'Connecting to Drive…': 'Conectando con Drive…',

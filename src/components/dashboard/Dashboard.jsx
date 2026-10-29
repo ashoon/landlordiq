@@ -9,6 +9,7 @@ import {
   idsWithFirstInStatus,
 } from '../../data/tenants.js'
 import { t } from '../../data/i18n.js'
+import { getTenantInsightMap } from '../../data/insights.js'
 import FilterBar from './FilterBar.jsx'
 import UnitCard from './UnitCard.jsx'
 import ManageUnits from './ManageUnits.jsx'
@@ -30,6 +31,10 @@ export default function Dashboard({ month, onStatsChange }) {
 
   // A pinned order belongs to one month; drop it when the month changes
   if (pinned && pinned.month !== month) setPinned(null)
+
+  // Payment-behaviour flags per tenant (for the Watch tag); re-read after any change, never affects status or order
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const insightMap = useMemo(() => getTenantInsightMap(month), [month, refreshKey])
 
   // Re-reads the store on every render cycle that needs it
   const freshTenants = getAllTenants(month)
@@ -133,6 +138,7 @@ export default function Dashboard({ month, onStatsChange }) {
             <UnitCard
               key={`${unit.id}-${month}-${refreshKey}`}
               unit={unit}
+              insight={insightMap.get(unit.payKey ?? unit.id)}
               onTogglePaid={handleTogglePaid}
               onRecordPayment={handleRecordPayment}
               onPaidDateChange={handlePaidDateChange}

@@ -22,6 +22,17 @@ The two flags at the top switch the app between English and Spanish. The choice 
 device only, so each person can use their own language while sharing the same data. Names and notes you
 type are never translated.
 
+## Tenant insights
+
+The **Analytics** tab ends with a *Tenant insights* table, and tenants who need watching get a violet **Watch** tag on
+their unit tile (hover or long-press it for the reason). Nothing extra is typed in: it is worked out from the payments you
+already mark.
+
+- **Pays late**: in 2 or more of the last 6 months the full rent arrived more than 7 days after the due date, or has not
+  arrived. A past month you never marked paid counts as late, so mark old months to keep the numbers fair.
+- **Pays in parts**: in 2 or more of the last 6 months the rent was paid in parts instead of one payment.
+- A `*` next to the months count means that tenant has fewer than 6 months of history, so a low number may just mean little data.
+
 ## How Drive sync works
 
 - Click **Connect Google Drive** in the header and sign in. The app creates one file,
