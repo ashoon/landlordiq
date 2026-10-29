@@ -5,6 +5,8 @@ import {
   recordPartialPayment,
   setPaidDate,
   setDueDate,
+  setBalanceDueDate,
+  setTargetMoveIn,
   sortByOrder,
   idsWithFirstInStatus,
 } from '../../data/tenants.js'
@@ -75,8 +77,8 @@ export default function Dashboard({ month, onStatsChange }) {
     onStatsChange?.()
   }
 
-  function handleRecordPayment(id, amount) {
-    const result = recordPartialPayment(id, amount, month)
+  function handleRecordPayment(id, amount, balanceDueDate) {
+    const result = recordPartialPayment(id, amount, month, undefined, balanceDueDate)
     // A full payment behaves like Mark as Paid (first in the paid section); a part payment keeps the tile in place
     if (result?.complete) {
       const fresh = getAllTenants(month)
@@ -106,6 +108,18 @@ export default function Dashboard({ month, onStatsChange }) {
     setDueDate(id, date, month)
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
+  }
+
+  function handleBalanceDueDateChange(id, date) {
+    pinCurrentOrder()
+    setBalanceDueDate(id, date, month)
+    setRefreshKey((k) => k + 1)
+  }
+
+  function handleTargetMoveInChange(id, date) {
+    pinCurrentOrder()
+    setTargetMoveIn(id, date)
+    setRefreshKey((k) => k + 1)
   }
 
   function handleFilterChange(status) {
@@ -143,6 +157,8 @@ export default function Dashboard({ month, onStatsChange }) {
               onRecordPayment={handleRecordPayment}
               onPaidDateChange={handlePaidDateChange}
               onDueDateChange={handleDueDateChange}
+              onBalanceDueDateChange={handleBalanceDueDateChange}
+              onTargetMoveInChange={handleTargetMoveInChange}
             />
           ))}
         </div>

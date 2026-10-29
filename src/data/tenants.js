@@ -133,6 +133,7 @@ function baseTenancy(unit) {
   return {
     tenantName: unit.tenantName,
     phone: unit.phone,
+    tenantNote: unit.tenantNote ?? '',
     rentAmount: unit.rentAmount,
     dueDay: unit.dueDay,
     paidCurrentMonth: unit.paidCurrentMonth,
@@ -178,10 +179,15 @@ function buildVacantRow(unit, tenancies, monthKey) {
     address: unit.address,
     tenantName: null,
     phone: '',
+    unitNote: unit.unitNote ?? '',
+    serviceWater: unit.serviceWater ?? '',
+    serviceGas: unit.serviceGas ?? '',
+    serviceElectricity: unit.serviceElectricity ?? '',
     rentAmount: ref.rentAmount,
     status: 'vacant',
     vacantSince: prev?.moveOut ?? null,
     moveInDate: next?.moveIn ?? null,
+    targetMoveIn: unit.targetMoveIn ?? null,
     dueDate: null,
     paidDate: null,
     paidCurrentMonth: false,
@@ -234,7 +240,7 @@ function validateTenantFields(fields) {
 /**
  * Validates editable unit fields. Addresses may repeat: several tenants can live at one address.
  *
- * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string }} fields
+ * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, tenantNote?: string, unitNote?: string, serviceWater?: string, serviceGas?: string, serviceElectricity?: string }} fields
  * @returns {string | null} error message, or null when valid
  */
 export function validateUnit(fields) {
@@ -249,6 +255,11 @@ function cleanFields(fields) {
     phone: String(fields.phone ?? '').trim(),
     rentAmount: Number(fields.rentAmount),
     dueDay: Number(fields.dueDay),
+    tenantNote: String(fields.tenantNote ?? '').trim(),
+    unitNote: String(fields.unitNote ?? '').trim(),
+    serviceWater: String(fields.serviceWater ?? '').trim(),
+    serviceGas: String(fields.serviceGas ?? '').trim(),
+    serviceElectricity: String(fields.serviceElectricity ?? '').trim(),
   }
 }
 
@@ -261,12 +272,13 @@ function patchUnit(id, patch) {
 }
 
 /**
- * Updates a unit's address and its current tenant's name, phone, rent and due day of month.
- * Once a unit has tenancy history the tenant fields change on the current tenancy
- * (and are ignored while vacant).
+ * Updates a unit's address, unit note and paid-service notes (water, gas, electricity) and its current
+ * tenant's name, phone, rent, due day of month and tenant note. Once a unit has
+ * tenancy history the tenant fields change on the current tenancy (and are ignored while vacant); the
+ * address, unit note and services always stay with the unit.
  *
  * @param {string} id
- * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string }} fields
+ * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, tenantNote?: string, unitNote?: string, serviceWater?: string, serviceGas?: string, serviceElectricity?: string }} fields
  */
 export function updateUnit(id, fields) {
   const clean = cleanFields(fields)
@@ -276,12 +288,12 @@ export function updateUnit(id, fields) {
 
   if (list) {
     // Tenant fields belong to the tenancy; a vacant unit only has its address to change
-    const { address, ...tenantFields } = clean
+    const { address, unitNote, serviceWater, serviceGas, serviceElectricity, ...tenantFields } = clean
     if (idx >= 0) {
       list[idx] = { ...list[idx], ...tenantFields }
       writeTenancies(stored)
     }
-    patchUnit(id, { address })
+    patchUnit(id, { address, unitNote, serviceWater, serviceGas, serviceElectricity })
   } else {
     patchUnit(id, clean)
   }
@@ -290,7 +302,7 @@ export function updateUnit(id, fields) {
 /**
  * Adds a new unit (unpaid) and returns its generated id.
  *
- * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string }} fields
+ * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, tenantNote?: string, unitNote?: string }} fields
  * @returns {string}
  */
 export function addUnit(fields) {
@@ -360,7 +372,7 @@ export function moveOutUnit(id, date) {
  * Validates a new tenant move-in.
  *
  * @param {string} id
- * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string }} fields
+ * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string, tenantNote?: string }} fields
  * @returns {string | null}
  */
 export function validateMoveIn(id, fields) {
@@ -375,16 +387,18 @@ export function validateMoveIn(id, fields) {
 }
 
 /**
- * Starts a new tenancy (unpaid) on `fields.date`, which may be in the future.
+ * Starts a new tenancy (unpaid) on `fields.date`, which may be in the future. The unit's
+ * target move-in date, if any, is cleared because it has been met.
  *
  * @param {string} id
- * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string }} fields
+ * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string, tenantNote?: string }} fields
  */
 export function moveInUnit(id, fields) {
   const { list } = loadTenancies(id)
   list.push({
     tenantName: String(fields.tenantName).trim(),
     phone: String(fields.phone ?? '').trim(),
+    tenantNote: String(fields.tenantNote ?? '').trim(),
     rentAmount: Number(fields.rentAmount),
     dueDay: Number(fields.dueDay),
     paidCurrentMonth: false,
@@ -393,6 +407,19 @@ export function moveInUnit(id, fields) {
     payKey: `${id}@${fields.date}`,
   })
   saveTenancies(id, list)
+  patchUnit(id, { targetMoveIn: null })
+}
+
+/**
+ * Sets the date the landlord aims to have a vacant unit let again. It is shown on the vacant tile
+ * (when no move-in is scheduled) and cleared automatically by moveInUnit.
+ *
+ * @param {string} id - unit id
+ * @param {string} date - ISO date "YYYY-MM-DD"
+ */
+export function setTargetMoveIn(id, date) {
+  if (validateDate(date)) return
+  patchUnit(id, { targetMoveIn: date })
 }
 
 /** Reopens the latest tenancy (undoes its move-out). */
@@ -581,6 +608,8 @@ export function getAllTenants(monthKey = getMonthKey()) {
       const enriched = {
         ...tenant,
         dueDate,
+        // Date the rest of a part payment is promised; information only, status still follows the due date
+        balanceDueDate: !paid && entries.length > 0 ? (override?.balanceDue ?? null) : null,
         paidCurrentMonth: paid,
         paidDate,
         paymentLog: entries,
@@ -687,7 +716,7 @@ function readPayment(overrides, id, monthKey) {
  */
 export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
   const overrides = getData('payments')
-  const { amountPaid: _total, payments: history, ...current } = readPayment(overrides, id, monthKey) ?? {}
+  const { amountPaid: _total, balanceDue: _due, payments: history, ...current } = readPayment(overrides, id, monthKey) ?? {}
   if (paid && history?.length) current.payments = history
   overrides[paymentKey(id, monthKey)] = { ...current, paid, paidDate: paid ? toIso(new Date()) : null }
   setData('payments', overrides)
@@ -714,17 +743,19 @@ export function validatePartPayment(amount) {
  * @param {number} amount - whole pesos received now
  * @param {string} [monthKey] - defaults to the current month
  * @param {string} [date] - ISO date received, defaults to today
+ * @param {string} [balanceDueDate] - ISO date the remaining balance is expected; empty keeps any earlier one.
+ *   Dropped once the month is paid in full.
  * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null} the result, or null when nothing was recorded
  */
-export function recordPartialPayment(id, amount, monthKey = getMonthKey(), date = toIso(new Date())) {
-  if (validatePartPayment(amount) || validateDate(date)) return null
+export function recordPartialPayment(id, amount, monthKey = getMonthKey(), date = toIso(new Date()), balanceDueDate = '') {
+  if (validatePartPayment(amount) || validateDate(date) || (balanceDueDate && validateDate(balanceDueDate))) return null
   const tenant = getAllTenants(monthKey).find((t) => t.id === id)
   if (!tenant || tenant.status === 'vacant') return null
 
   const result = describePayment(tenant.rentAmount, tenant.amountPaid, amount)
   const overrides = getData('payments')
   const stored = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
-  const { amountPaid: _total, ...current } = stored
+  const { amountPaid: _total, balanceDue: keptDue, ...current } = stored
   // Keep older total-only records in the list (undated, shown as "Earlier") so they aren't lost
   const earlier = paymentEntries(stored).map((p) => (p.id === 'legacy' ? { ...p, id: `legacy-${monthKey}` } : p))
   const entry = {
@@ -737,10 +768,28 @@ export function recordPartialPayment(id, amount, monthKey = getMonthKey(), date 
   if (result.complete) {
     overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: true, paidDate: date }
   } else {
-    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: false, paidDate: null }
+    const due = balanceDueDate || keptDue
+    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: false, paidDate: null, ...(due ? { balanceDue: due } : {}) }
   }
   setData('payments', overrides)
   return result
+}
+
+/**
+ * Sets (or changes) the date the balance of a part-paid month is expected. Does nothing unless the month
+ * has a part payment and is still unpaid. It never changes the unit's status or due date.
+ *
+ * @param {string} id - Tenant ID (e.g. "T01")
+ * @param {string} date - ISO date "YYYY-MM-DD"
+ * @param {string} [monthKey] - defaults to the current month
+ */
+export function setBalanceDueDate(id, date, monthKey = getMonthKey()) {
+  if (validateDate(date)) return
+  const overrides = getData('payments')
+  const current = readPayment(overrides, id, monthKey)
+  if (!current || current.paid || paymentEntries(current).length === 0) return
+  overrides[paymentKey(id, monthKey)] = { ...current, balanceDue: date }
+  setData('payments', overrides)
 }
 
 /**

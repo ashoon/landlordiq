@@ -244,6 +244,24 @@ the unit stays **unpaid** (status still follows the due date). `getAllTenants()`
 totals. Marking unpaid clears all part payments; marking paid in full keeps the list as history. Dashboard keeps the
 tile in place after a part payment.
 
+### Balance expected by, vacancy target and notes
+
+- **Balance expected by:** a part payment can carry a date the rest is promised (`recordPartialPayment(..., balanceDueDate)`,
+  or `setBalanceDueDate` to edit it). Stored as `balanceDue` on the payment override, exposed as `balanceDueDate` on the row
+  (only while unpaid with at least one part payment). Information only: it turns red on the card once passed but never changes
+  status, due date or totals. Marking paid/unpaid clears it; paying in full drops it.
+- **Target move-in:** `units.added[].targetMoveIn` (`setTargetMoveIn`), editable on a vacant tile while no move-in is scheduled;
+  cleared by `moveInUnit`. The vacant tile already shows days vacant (from the last move-out).
+- **Notes:** `unitNote` lives on the unit (stays with the address), `tenantNote` on the tenancy (goes with the tenant). Both are
+  edited in Manage Units and shown at the bottom of the tile (`tenantNote` not on vacant tiles).
+
+### Paid services (water, gas, electricity)
+
+Three free-text fields on the unit record (`serviceWater`, `serviceGas`, `serviceElectricity`) for services the tenant pays
+separately. They belong to the apartment, so they stay when tenants change (`updateUnit` always patches them onto the unit).
+Edited in Manage Units → Edit (under the address), shown under the address in that table and at the bottom of the tile
+(vacant tiles too). Contract renewals, contract ids and shared utility contract numbers are **not** built.
+
 ### Tenant insights (pays late / pays in parts)
 
 `src/data/insights.js` works out, from payments already stored, how each tenant has paid. **Nothing new is stored** and it

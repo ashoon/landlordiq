@@ -12,6 +12,10 @@ import EditableDate from './EditableDate.jsx'
  * one opens a date field for it (see EditableDate).
  * "Mark as Paid" opens a small panel: pay the full rent, or record a part payment (entered in COP mil),
  * which shows how many days of the month it covers (see DAYS_PER_MONTH) and the balance still owed.
+ * A part payment can also carry a "balance expected by" date, shown (and editable) under the balance;
+ * it turns red once passed but never changes the status.
+ * A vacant tile shows an editable target move-in date until a move-in is scheduled; unit and tenant
+ * notes and the services the tenant pays separately (edited in Manage Units) are shown at the bottom of the tile.
  *
  * A flagged tenant (pays late and/or in parts, see src/data/insights.js) also gets a small "Watch" tag next
  * to the status badge. It is information only: it never changes the tile's colour, status or position.
@@ -20,14 +24,26 @@ import EditableDate from './EditableDate.jsx'
  *   unit: Object,
  *   insight?: Object,
  *   onTogglePaid: (id: string, paid: boolean) => void,
- *   onRecordPayment: (id: string, amount: number) => void,
+ *   onRecordPayment: (id: string, amount: number, balanceDueDate: string) => void,
  *   onPaidDateChange: (id: string, date: string) => void,
- *   onDueDateChange: (id: string, date: string) => void
+ *   onDueDateChange: (id: string, date: string) => void,
+ *   onBalanceDueDateChange: (id: string, date: string) => void,
+ *   onTargetMoveInChange: (id: string, date: string) => void
  * }} props
  */
-export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment, onPaidDateChange, onDueDateChange }) {
+export default function UnitCard({
+  unit,
+  insight,
+  onTogglePaid,
+  onRecordPayment,
+  onPaidDateChange,
+  onDueDateChange,
+  onBalanceDueDateChange,
+  onTargetMoveInChange,
+}) {
   const [paying, setPaying] = useState(false)
   const [amountText, setAmountText] = useState('')
+  const [balanceDueText, setBalanceDueText] = useState('')
   // Preview of the part payment being typed (days covered, balance); null until it is a valid amount
   const preview = paying ? describePayment(unit.rentAmount, unit.amountPaid, milToAmount(amountText)) : null
   const hasPartPayment = unit.status !== 'vacant' && unit.status !== 'paid' && unit.amountPaid > 0
@@ -84,6 +100,14 @@ export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment,
       : []
   const watchText = watchReasons.length > 0 ? `${t('Watch')}: ${watchReasons.join('; ')}` : null
 
+  const balanceDueLate = !!unit.balanceDueDate && getDaysRelative(unit.balanceDueDate) < 0
+  const notes = [unit.unitNote, unit.tenantNote].filter(Boolean)
+  const services = [
+    [t('Water'), unit.serviceWater],
+    [t('Gas'), unit.serviceGas],
+    [t('Electricity'), unit.serviceElectricity],
+  ].filter(([, text]) => text)
+
   function getVacancyLabel() {
     if (!unit.vacantSince) return t('No tenant')
     const n = Math.max(0, -getDaysRelative(unit.vacantSince))
@@ -121,6 +145,18 @@ export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment,
               {unit.moveInDate <= getTodayIso() ? '' : ` ${t('(scheduled)')}`}
             </p>
           )}
+          {!unit.moveInDate && (
+            <div className="mt-0.5 sm:mt-1">
+              <EditableDate
+                label={t('Target move-in')}
+                value={unit.targetMoveIn ?? ''}
+                display={unit.targetMoveIn ? formatDueDate(unit.targetMoveIn) : t('not set')}
+                onSave={(date) => onTargetMoveInChange(unit.id, date)}
+                textClassName="text-xs text-gray-700"
+                ariaLabel={`${t('Target move-in')}, ${unit.address}`}
+              />
+            </div>
+          )}
           <p className="text-xs text-gray-500 mt-1 sm:mt-2">{t('Rent lost')}</p>
           <p className="text-base sm:text-xl font-bold text-gray-500">{formatCurrency(unit.rentAmount)}</p>
         </div>
@@ -135,6 +171,18 @@ export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment,
               <br />
               {t('Balance')} {formatCurrency(unit.balance)}
             </p>
+          )}
+          {hasPartPayment && (
+            <div className="mt-0.5">
+              <EditableDate
+                label={t('Balance expected by')}
+                value={unit.balanceDueDate ?? ''}
+                display={unit.balanceDueDate ? formatDueDate(unit.balanceDueDate) : t('not set')}
+                onSave={(date) => onBalanceDueDateChange(unit.id, date)}
+                textClassName={`text-xs font-medium ${balanceDueLate ? 'text-red-600' : 'text-gray-700'}`}
+                ariaLabel={`${t('Balance expected by')}, ${unit.tenantName}`}
+              />
+            </div>
           )}
           {unit.paymentLog.length > 0 && (
             <ul className="mt-0.5 text-[11px] sm:text-xs text-gray-500" aria-label={`${t('Payments received')}, ${unit.tenantName}`}>
@@ -170,6 +218,19 @@ export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment,
           {daysLabel && (
             <p className={`text-xs font-medium mt-0.5 sm:mt-1 ${daysLabel.cls}`}>{daysLabel.text}</p>
           )}
+        </div>
+      )}
+
+      {(notes.length > 0 || services.length > 0) && (
+        <div className="text-[11px] sm:text-xs text-gray-500 break-words">
+          {notes.map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+          {services.map(([label, text]) => (
+            <p key={label}>
+              {label}: {text}
+            </p>
+          ))}
         </div>
       )}
 
@@ -220,13 +281,26 @@ export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment,
                 : `${t('{days} of {total} days', { days: preview.days, total: DAYS_PER_MONTH })} · ${t('balance')} ${formatCurrency(preview.balance)}`}
             </p>
           )}
+          {preview && !preview.complete && (
+            <label className="text-[11px] sm:text-xs text-gray-600">
+              {t('Balance expected by (optional)')}
+              <input
+                type="date"
+                value={balanceDueText}
+                onChange={(e) => setBalanceDueText(e.target.value)}
+                aria-label={`${t('Balance expected by')}, ${unit.tenantName}`}
+                className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            </label>
+          )}
           <div className="flex gap-1.5">
             <button
               disabled={!preview}
               onClick={() => {
-                onRecordPayment(unit.id, milToAmount(amountText))
+                onRecordPayment(unit.id, milToAmount(amountText), balanceDueText)
                 setPaying(false)
                 setAmountText('')
+                setBalanceDueText('')
               }}
               className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-400 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -236,6 +310,7 @@ export default function UnitCard({ unit, insight, onTogglePaid, onRecordPayment,
               onClick={() => {
                 setPaying(false)
                 setAmountText('')
+                setBalanceDueText('')
               }}
               className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
             >

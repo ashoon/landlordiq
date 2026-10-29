@@ -42,6 +42,9 @@ const FILE_NAME = 'landlordiq-data.json'
 /** Folder path in My Drive that holds the data file (created on demand). */
 const FOLDER_PATH = ['Colombia', 'Apartments']
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
+const BACKUP_PREFIX = 'landlordiq-backup-'
+const BACKUP_MIME = 'application/json'
+const BACKUP_RETENTION_DAYS = 90
 const SAVE_DELAY_MS = 1500
 /** How often an open, visible tab checks Drive for changes made by someone else. */
 const POLL_INTERVAL_MS = 30_000
@@ -473,6 +476,84 @@ async function updateFile(id, data) {
   return response.json()
 }
 
+// ---------------------------------------------------------------- daily backup
+
+/**
+ * Returns today's date as "YYYY-MM-DD" (local time).
+ */
+function todayKey() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/**
+ * Lists all backup files for this app in the folder. Returns an array of
+ * { id, name, createdTime } objects. Returns [] on any error.
+ */
+async function listBackupFiles() {
+  try {
+    const folderId = await ensureFolderPath()
+    const query = encodeURIComponent(
+      `name contains '${BACKUP_PREFIX}' and '${folderId}' in parents and trashed = false`,
+    )
+    const url = `${API}/files?q=${query}&spaces=drive&fields=files(id,name,createdTime)&pageSize=100`
+    const { files } = await (await api(url)).json()
+    return files ?? []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Writes a daily backup file to the Drive folder. Skips if a backup for today already exists.
+ * Runs best-effort: never throws.
+ */
+async function writeDailyBackup(data) {
+  try {
+    const today = todayKey()
+    const backupName = `${BACKUP_PREFIX}${today}.json`
+    const existing = await listBackupFiles()
+    if (existing.some((f) => f.name === backupName)) return
+    const folderId = await ensureFolderPath()
+    const boundary = `landlordiq${Math.random().toString(36).slice(2)}`
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+      `${JSON.stringify({ name: backupName, mimeType: BACKUP_MIME, parents: [folderId] })}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${wrap(data)}\r\n--${boundary}--`
+    await api(`${UPLOAD}/files?uploadType=multipart&fields=id`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body,
+    })
+  } catch {
+    // Best-effort: a failed backup never blocks the main sync
+  }
+}
+
+/**
+ * Trashes backup files older than BACKUP_RETENTION_DAYS. Runs best-effort: never throws.
+ */
+async function pruneOldBackups() {
+  try {
+    const files = await listBackupFiles()
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - BACKUP_RETENTION_DAYS)
+    const old = files.filter((f) => f.createdTime && new Date(f.createdTime) < cutoff)
+    await Promise.all(
+      old.map((f) =>
+        api(`${API}/files/${f.id}`, {
+          method: 'DELETE',
+        }).catch(() => {}),
+      ),
+    )
+  } catch {
+    // Best-effort
+  }
+}
+
 // ---------------------------------------------------------------- sync logic
 
 /**
@@ -492,6 +573,10 @@ function markSynced(file, stamp, data) {
   pendingConflict = null
   setStatus(stillDirty ? 'unsynced' : 'synced')
   if (stillDirty) schedulePush()
+  // Write a daily backup in the background only when data actually changed (stamp matches)
+  if (!stillDirty && !getMeta().shared) {
+    writeDailyBackup(data).then(() => pruneOldBackups()).catch(() => {})
+  }
 }
 
 /** Replaces the local data with the Drive copy (keeping a safety backup of local data first). */

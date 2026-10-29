@@ -17,7 +17,18 @@ import {
 import { formatCurrency } from '../../data/currency.js'
 import { t, getLanguage } from '../../data/i18n.js'
 
-const EMPTY_FORM = { address: '', tenantName: '', phone: '', rentAmount: '', dueDay: '' }
+const EMPTY_FORM = {
+  address: '',
+  tenantName: '',
+  phone: '',
+  rentAmount: '',
+  dueDay: '',
+  tenantNote: '',
+  unitNote: '',
+  serviceWater: '',
+  serviceGas: '',
+  serviceElectricity: '',
+}
 
 const inputCls =
   'w-full px-2 py-1 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white'
@@ -71,6 +82,11 @@ export default function ManageUnits({ onChange }) {
       phone: unit.phone,
       rentAmount: String(unit.rentAmount),
       dueDay: String(unit.dueDay),
+      tenantNote: unit.tenantNote ?? '',
+      unitNote: unit.unitNote ?? '',
+      serviceWater: unit.serviceWater ?? '',
+      serviceGas: unit.serviceGas ?? '',
+      serviceElectricity: unit.serviceElectricity ?? '',
     })
 
   const startMoveOut = (unit) => begin(unit.id, 'moveOut', { ...EMPTY_FORM, date: getTodayIso() })
@@ -79,6 +95,7 @@ export default function ManageUnits({ onChange }) {
     begin(unit.id, 'moveIn', {
       tenantName: '',
       phone: '',
+      tenantNote: '',
       rentAmount: String(unit.rentAmount),
       dueDay: String(unit.dueDay),
       date: getTodayIso(),
@@ -150,9 +167,15 @@ export default function ManageUnits({ onChange }) {
           <>
             <td className="px-3 py-2">
               <input className={inputCls} value={form.address} onChange={setField('address')} placeholder={t('Address')} />
+              <input className={`${inputCls} mt-1`} value={form.unitNote} onChange={setField('unitNote')} placeholder={t('Unit note (e.g. building code)')} />
+              <span className="block mt-2">{label(t('Services the tenant pays separately'))}</span>
+              <input className={inputCls} value={form.serviceWater} onChange={setField('serviceWater')} placeholder={t('Water')} aria-label={t('Water')} />
+              <input className={`${inputCls} mt-1`} value={form.serviceGas} onChange={setField('serviceGas')} placeholder={t('Gas')} aria-label={t('Gas')} />
+              <input className={`${inputCls} mt-1`} value={form.serviceElectricity} onChange={setField('serviceElectricity')} placeholder={t('Electricity')} aria-label={t('Electricity')} />
             </td>
             <td className="px-3 py-2">
               <input className={inputCls} value={form.tenantName} onChange={setField('tenantName')} placeholder={t('Tenant name')} />
+              <input className={`${inputCls} mt-1`} value={form.tenantNote} onChange={setField('tenantNote')} placeholder={t('Tenant note (e.g. contact preference, parking)')} />
             </td>
             <td className="px-3 py-2 w-36">
               <input className={inputCls} value={form.phone} onChange={setField('phone')} placeholder={t('Phone')} />
@@ -185,6 +208,7 @@ export default function ManageUnits({ onChange }) {
             <td className="px-3 py-2">
               {label(t('New tenant'))}
               <input className={inputCls} value={form.tenantName} onChange={setField('tenantName')} placeholder={t('Tenant name')} />
+              <input className={`${inputCls} mt-1`} value={form.tenantNote} onChange={setField('tenantNote')} placeholder={t('Tenant note (e.g. contact preference, parking)')} />
             </td>
             <td className="px-3 py-2 w-36">
               {label(t('Phone'))}
@@ -216,8 +240,21 @@ export default function ManageUnits({ onChange }) {
     )
   }
 
-  /** Short note under a tenant name describing move-out / vacancy / scheduled move-in. */
+  /** Services the tenant pays separately, as one line under the address. */
+  function renderServices(unit) {
+    const parts = [
+      unit.serviceWater && `${t('Water')}: ${unit.serviceWater}`,
+      unit.serviceGas && `${t('Gas')}: ${unit.serviceGas}`,
+      unit.serviceElectricity && `${t('Electricity')}: ${unit.serviceElectricity}`,
+    ].filter(Boolean)
+    return parts.length > 0 ? <p className="text-xs text-gray-500 mt-0.5 font-normal">{parts.join(' · ')}</p> : null
+  }
+
+  /** Short note under a tenant name describing move-out / vacancy / scheduled move-in, plus the saved notes. */
   function renderNote(unit) {
+    if (!unit.vacant && !unit.moveOutDate && !unit.nextMoveIn && unit.tenantNote) {
+      return <p className="text-xs text-gray-500 mt-0.5">{unit.tenantNote}</p>
+    }
     if (unit.vacant) {
       return (
         <p className="text-xs text-gray-500 mt-0.5">
@@ -290,7 +327,10 @@ export default function ManageUnits({ onChange }) {
                     editRow(unit.id, unit)
                   ) : (
                     <tr key={unit.id} className="border-b border-gray-100 last:border-0">
-                      <td className="px-3 py-2 font-medium text-gray-900">{unit.address}</td>
+                      <td className="px-3 py-2 font-medium text-gray-900">
+                        {unit.address}
+                        {renderServices(unit)}
+                      </td>
                       <td className="px-3 py-2 text-gray-700">
                         {unit.vacant ? <span className="text-gray-400">{t('Vacant')}</span> : unit.tenantName}
                         {renderNote(unit)}
