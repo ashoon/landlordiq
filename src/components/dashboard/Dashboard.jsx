@@ -1,5 +1,12 @@
 import { useState, useMemo } from 'react'
-import { getAllTenants, setPaymentStatus, setPaidDate, setDueDate, sortByOrder } from '../../data/tenants.js'
+import {
+  getAllTenants,
+  setPaymentStatus,
+  setPaidDate,
+  setDueDate,
+  sortByOrder,
+  idsWithFirstInStatus,
+} from '../../data/tenants.js'
 import FilterBar from './FilterBar.jsx'
 import UnitCard from './UnitCard.jsx'
 import ManageUnits from './ManageUnits.jsx'
@@ -15,7 +22,8 @@ export default function Dashboard({ month, onStatsChange }) {
   // refreshKey forces re-read from tenants.js (which reads the store) after a toggle
   const [refreshKey, setRefreshKey] = useState(0)
   // Tile order kept after a date edit so the tile doesn't jump to a new status position.
-  // Cleared (back to the normal sort) when the filter, search or month changes or a unit is marked paid/unpaid.
+  // Also set when a unit is marked paid, to put it first in the paid section.
+  // Cleared (back to the normal sort) when the filter, search or month changes, a unit is marked unpaid, or units are edited.
   const [pinned, setPinned] = useState(null) // { month, ids } | null
 
   // A pinned order belongs to one month; drop it when the month changes
@@ -48,7 +56,14 @@ export default function Dashboard({ month, onStatsChange }) {
 
   function handleTogglePaid(id, paid) {
     setPaymentStatus(id, paid, month)
-    setPinned(null)
+    // Marked paid: the tile goes to the first spot of the paid section. Marked unpaid: normal sort.
+    if (paid) {
+      const fresh = getAllTenants(month)
+      const current = pinned ? sortByOrder(fresh, pinned.ids) : fresh
+      setPinned({ month, ids: idsWithFirstInStatus(current, id) })
+    } else {
+      setPinned(null)
+    }
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
   }

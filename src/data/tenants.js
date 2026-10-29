@@ -470,6 +470,23 @@ function compareTenants(a, b) {
 }
 
 /**
+ * Returns unit ids in the current order, with `id` moved to the front of its own status group
+ * (e.g. a unit just marked paid becomes the first entry of the paid section).
+ *
+ * @param {Array<Object>} tenants - rows from getAllTenants()
+ * @param {string} id - unit id to move
+ * @returns {string[]}
+ */
+export function idsWithFirstInStatus(tenants, id) {
+  const unit = tenants.find((t) => t.id === id)
+  if (!unit) return tenants.map((t) => t.id)
+  const rest = tenants.filter((t) => t.id !== id)
+  const at = rest.findIndex((t) => t.status === unit.status)
+  rest.splice(at === -1 ? rest.length : at, 0, unit)
+  return rest.map((t) => t.id)
+}
+
+/**
  * Reorders tenant rows to follow a previously captured list of unit ids, so a tile stays where it
  * was after an edit that would otherwise re-sort it. Ids missing from `order` (new units) go last.
  *
