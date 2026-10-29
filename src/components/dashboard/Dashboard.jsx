@@ -8,6 +8,7 @@ import {
   sortByOrder,
   idsWithFirstInStatus,
 } from '../../data/tenants.js'
+import { t } from '../../data/i18n.js'
 import FilterBar from './FilterBar.jsx'
 import UnitCard from './UnitCard.jsx'
 import ManageUnits from './ManageUnits.jsx'
@@ -122,10 +123,10 @@ export default function Dashboard({ month, onStatsChange }) {
       />
       {allTenants.length === 0 ? (
         <p className="text-gray-500 text-sm">
-          No units yet. Connect Google Drive to load your saved data, or add a unit under Manage Units below.
+          {t('No units yet. Connect Google Drive to load your saved data, or add a unit under Manage Units below.')}
         </p>
       ) : tenants.length === 0 ? (
-        <p className="text-gray-500 text-sm">No units match this filter.</p>
+        <p className="text-gray-500 text-sm">{t('No units match this filter.')}</p>
       ) : (
         <div className="grid gap-2 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {tenants.map((unit) => (

@@ -1,6 +1,7 @@
 import { getSummaryStats } from './tenants.js'
 import { getData, setData } from './store.js'
 import { getTrackingStart } from './tracking.js'
+import { t, formatLocaleDate, capitalize } from './i18n.js'
 
 /** Maintenance categories offered when logging an expense (the pie chart's slices). */
 export const EXPENSE_CATEGORIES = ['General Repairs', 'Plumbing', 'Electrical', 'Other']
@@ -29,9 +30,9 @@ export function getExpenses(monthKey) {
  * @returns {string | null} error message, or null when valid
  */
 export function validateExpense(fields) {
-  if (!EXPENSE_CATEGORIES.includes(fields.category)) return 'Choose a category.'
+  if (!EXPENSE_CATEGORIES.includes(fields.category)) return t('Choose a category.')
   const amount = Number(fields.amount)
-  if (!Number.isFinite(amount) || amount <= 0) return 'Amount must be greater than 0.'
+  if (!Number.isFinite(amount) || amount <= 0) return t('Amount must be greater than 0.')
   return null
 }
 
@@ -95,11 +96,11 @@ export function getTaxPayments() {
 export function validateTaxPayment(fields) {
   const year = Number(fields.year)
   const amount = Number(fields.amount)
-  if (!Number.isInteger(year) || year < 2000 || year > 2100) return 'Enter a valid tax year.'
-  if (!Number.isFinite(amount) || amount <= 0) return 'Amount must be greater than 0.'
-  if (!fields.paidDate) return 'Date paid is required.'
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) return t('Enter a valid tax year.')
+  if (!Number.isFinite(amount) || amount <= 0) return t('Amount must be greater than 0.')
+  if (!fields.paidDate) return t('Date paid is required.')
   if (readTaxes().some((t) => t.year === year)) {
-    return `A ${year} tax payment is already recorded. Delete it first to replace it.`
+    return t('A {year} tax payment is already recorded. Delete it first to replace it.', { year })
   }
   return null
 }
@@ -162,7 +163,7 @@ export function getFinancials(monthKey) {
       maintenanceCosts: maintenanceCostsFor(key),
       propertyTax: taxPaidIn(key),
       month: key,
-      label: date.toLocaleDateString('en-US', { month: 'short' }),
+      label: capitalize(formatLocaleDate(date, { month: 'short' })),
       rentExpected: stats.totalExpected,
       rentCollected: stats.totalCollected,
       rentDueSoon: stats.totalDueSoon,

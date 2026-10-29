@@ -55,7 +55,9 @@ landlordiq/
 │   │   ├── tenants.js                  # Unit / tenancy / payment data-access helpers (via store.js)
 │   │   ├── financials.js               # Expenses, taxes, up-to-6-month financials (via store.js)
 │   │   ├── tracking.js                 # Tracking start month (settings); hides earlier months, deletes nothing
-│   │   ├── currency.js                 # COP formatting + "mil" helpers
+│   │   ├── currency.js                 # COP formatting + "mil" helpers (number format follows the language)
+│   │   ├── i18n.js                     # English/Spanish: t(), getLanguage/setLanguage, locale date helpers
+│   │   ├── translations.es.js          # Spanish texts, keyed by the English text
 │   │   ├── store.js                    # Only module touching localStorage; in-memory cache + events
 │   │   ├── merge.js                    # Pure three-way merge (base/local/remote) used by driveSync
 │   │   └── driveSync.js                # Google Drive sync (sign-in, debounce, polling, merging)
@@ -63,6 +65,7 @@ landlordiq/
 │       ├── layout/
 │       │   ├── Header.jsx              # Property name, date, Drive status, month picker, tab switcher
 │       │   ├── DriveStatus.jsx         # Connect / Reconnect / Save now / Disconnect chip
+│       │   ├── LanguageSwitcher.jsx    # English / Spanish flag buttons in the header
 │       │   ├── SyncBanner.jsx          # Conflict / expired sign-in / offline / error notice
 │       │   └── SummaryStrip.jsx        # Aggregate counts strip (dashboard tab only)
 │       ├── dashboard/
@@ -238,6 +241,19 @@ the unit stays **unpaid** (status still follows the due date). `getAllTenants()`
 `getSummaryStats()` counts `amountPaid` in `totalCollected` and only the `balance` in the overdue / due-soon / upcoming
 totals. Marking unpaid clears all part payments; marking paid in full keeps the list as history. Dashboard keeps the
 tile in place after a part payment.
+
+### Languages (English / Spanish)
+
+Two flag buttons in the header (`layout/LanguageSwitcher.jsx`) switch the whole app. `src/data/i18n.js` holds the
+state: `t(englishText, params?)`, `getLanguage`, `setLanguage`, `subscribeLanguage`, `getLocale` ('en-US' / 'es-CO'),
+`formatLocaleDate`, `formatToday`, `capitalize`. **The English text is the key**; `translations.es.js` maps it to
+Spanish and a missing entry simply shows in English. `{name}` placeholders are filled from `params`. `App.jsx`
+subscribes to the language so everything redraws. The choice is stored per device (`landlordiq_language`, via
+`store.js`, **not** synced to Drive, so each person keeps their own); the first visit follows the browser language.
+Dates, month names and number formats (`1.850.000` in Spanish) follow the language; money is still shown as `COP`.
+Stored data (tenant names, notes, categories as saved) is never translated; expense categories are stored in English
+and translated only for display. **New user-visible text must go through `t()` and get a Spanish entry.** Drive status
+messages are English texts translated on display (`describeStatus`); Google's own error text is kept in `detail`.
 
 ### Costs
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import Header from './components/layout/Header.jsx'
 import SummaryStrip from './components/layout/SummaryStrip.jsx'
 import Dashboard from './components/dashboard/Dashboard.jsx'
@@ -8,6 +8,7 @@ import { getMonthKey, importSeedUnits } from './data/tenants.js'
 import { subscribe } from './data/store.js'
 import { initDriveSync } from './data/driveSync.js'
 import { ensureTrackingStart } from './data/tracking.js'
+import { getLanguage, subscribeLanguage } from './data/i18n.js'
 
 // Hash routing (#/analytics) so deep links and refreshes work on static hosts such as GitHub Pages
 function getTabFromPath() {
@@ -18,6 +19,8 @@ function getTabFromPath() {
  * App — top-level shell. Owns the active tab/route state and renders the correct view.
  */
 export default function App() {
+  // Re-renders the whole app when the language flag is clicked (texts come from t() in i18n.js)
+  useSyncExternalStore(subscribeLanguage, getLanguage)
   const [activeTab, setActiveTab] = useState(getTabFromPath)
   // Incremented when a unit toggle occurs so SummaryStrip re-reads from tenants.js
   const [statsKey, setStatsKey] = useState(0)

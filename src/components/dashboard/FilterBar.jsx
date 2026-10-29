@@ -1,3 +1,5 @@
+import { t } from '../../data/i18n.js'
+
 /**
  * FilterBar — status filter buttons and unit number search for the unit grid.
  *
@@ -10,12 +12,12 @@
  */
 export default function FilterBar({ activeFilter, onFilterChange, searchQuery, onSearchChange }) {
   const filters = [
-    { value: 'all', label: 'All' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'due-soon', label: 'Due Soon' },
-    { value: 'upcoming', label: 'Upcoming' },
-    { value: 'overdue', label: 'Overdue' },
-    { value: 'vacant', label: 'Vacant' },
+    { value: 'all', label: t('All') },
+    { value: 'paid', label: t('Paid') },
+    { value: 'due-soon', label: t('Due Soon') },
+    { value: 'upcoming', label: t('Upcoming') },
+    { value: 'overdue', label: t('Overdue') },
+    { value: 'vacant', label: t('Vacant') },
   ]
 
   return (
@@ -46,12 +48,13 @@ export default function FilterBar({ activeFilter, onFilterChange, searchQuery, o
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search address, tenant or phone…"
-          className="pl-8 pr-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white w-full sm:w-64"
+          placeholder={t('Search address, tenant or phone…')}
+          className="pl-8 pr-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white w-full sm:w-80"
         />
         {searchQuery && (
           <button
             onClick={() => onSearchChange('')}
+            aria-label={t('Clear search')}
             className="absolute inset-y-0 right-2.5 flex items-center text-gray-400 hover:text-gray-600"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -7,6 +7,7 @@ import {
   deleteExpense,
 } from '../../data/financials.js'
 import { formatCurrencyMil, milToAmount } from '../../data/currency.js'
+import { t, formatLocaleDate, capitalize } from '../../data/i18n.js'
 
 const EMPTY_FORM = { category: EXPENSE_CATEGORIES[0], amount: '', note: '' }
 
@@ -27,10 +28,12 @@ export default function MaintenanceExpenses({ month, onChange }) {
   const [error, setError] = useState('')
 
   const expenses = getExpenses(month)
-  const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  })
+  const monthLabel = capitalize(
+    formatLocaleDate(new Date(`${month}-01T00:00:00`), {
+      month: 'long',
+      year: 'numeric',
+    }),
+  )
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -55,22 +58,22 @@ export default function MaintenanceExpenses({ month, onChange }) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">Add Maintenance Expense</h3>
-      <p className="text-xs text-gray-500 mb-4">Logged against {monthLabel}</p>
+      <h3 className="text-sm font-semibold text-gray-700">{t('Add Maintenance Expense')}</h3>
+      <p className="text-xs text-gray-500 mb-4">{t('Logged against')} {monthLabel}</p>
 
       <form onSubmit={submit} className="grid grid-cols-2 gap-3">
         <label className="text-xs text-gray-500">
-          Category
+          {t('Category')}
           <select className={`mt-1 ${inputCls}`} value={form.category} onChange={setField('category')}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {t(c)}
               </option>
             ))}
           </select>
         </label>
         <label className="text-xs text-gray-500">
-          Amount (COP mil)
+          {t('Amount (COP mil)')}
           <input
             className={`mt-1 ${inputCls}`}
             type="number"
@@ -78,16 +81,16 @@ export default function MaintenanceExpenses({ month, onChange }) {
             step="any"
             value={form.amount}
             onChange={setField('amount')}
-            placeholder="e.g. 450"
+            placeholder={t('e.g. 450')}
           />
         </label>
         <label className="col-span-2 text-xs text-gray-500">
-          Note (optional)
+          {t('Note (optional)')}
           <input
             className={`mt-1 ${inputCls}`}
             value={form.note}
             onChange={setField('note')}
-            placeholder="e.g. Unit 304 leaking faucet"
+            placeholder={t('e.g. Unit 304 leaking faucet')}
           />
         </label>
         <div className="col-span-2 flex items-center justify-between">
@@ -96,7 +99,7 @@ export default function MaintenanceExpenses({ month, onChange }) {
             type="submit"
             className="text-xs font-medium px-4 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700"
           >
-            Add Expense
+            {t('Add Expense')}
           </button>
         </div>
       </form>
@@ -106,17 +109,17 @@ export default function MaintenanceExpenses({ month, onChange }) {
           {expenses.map((e) => (
             <li key={e.id} className="flex items-center justify-between gap-3 py-2 text-sm">
               <span className="min-w-0">
-                <span className="font-medium text-gray-900">{e.category}</span>
+                <span className="font-medium text-gray-900">{t(e.category)}</span>
                 {e.note && <span className="block truncate text-xs text-gray-500">{e.note}</span>}
               </span>
               <span className="flex items-center gap-3 whitespace-nowrap">
                 <span className="font-medium text-gray-900">{formatCurrencyMil(e.amount)}</span>
                 <button
                   onClick={() => remove(e.id)}
-                  aria-label={`Delete ${e.category} expense`}
+                  aria-label={`${t('Delete')} ${t(e.category)}`}
                   className="text-xs text-red-500 hover:underline"
                 >
-                  Delete
+                  {t('Delete')}
                 </button>
               </span>
             </li>

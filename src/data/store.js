@@ -195,6 +195,35 @@ export function setMeta(patch) {
   return { ...metaCache }
 }
 
+const LANGUAGE_KEY = 'landlordiq_language'
+
+/**
+ * The language chosen on this device ('en' | 'es'), or null if none was chosen yet.
+ * A personal preference: kept out of the synced data so each person keeps their own.
+ *
+ * @returns {string|null}
+ */
+export function getStoredLanguage() {
+  try {
+    return localStorage.getItem(LANGUAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Remembers the language chosen on this device.
+ *
+ * @param {string} language - 'en' | 'es'
+ */
+export function setStoredLanguage(language) {
+  try {
+    localStorage.setItem(LANGUAGE_KEY, language)
+  } catch {
+    // Storage blocked: the choice lasts for this session only
+  }
+}
+
 const BASE_KEY = 'landlordiq_drive_base'
 
 /**

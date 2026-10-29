@@ -30,6 +30,7 @@ import {
   saveLocalBackup,
 } from './store.js'
 import { mergeData, stable } from './merge.js'
+import { t } from './i18n.js'
 
 const CLIENT_ID = import.meta.env?.VITE_GOOGLE_CLIENT_ID ?? ''
 /** Browser API key (Google Picker API enabled). Optional: without it, "Open a shared file" is hidden. */
@@ -77,15 +78,31 @@ class DriveError extends Error {
 let status = {
   state: !CLIENT_ID ? 'disabled' : getMeta().connected ? 'connecting' : 'disconnected',
   message: '',
+  detail: '',
   lastSynced: getMeta().lastSynced,
 }
 const statusListeners = new Set()
 
-function setStatus(state, message = '') {
-  status = { state, message, lastSynced: getMeta().lastSynced }
+/**
+ * Sets the sync status. `message` is an English text that gets translated when shown;
+ * `detail` is text that must not be translated (for example Google's own error text).
+ */
+function setStatus(state, message = '', detail = '') {
+  status = { state, message, detail, lastSynced: getMeta().lastSynced }
   if (state === 'synced') autoReconnectTried = false
   if (state === 'needs-auth') armNextTapReconnect()
   statusListeners.forEach((listener) => listener())
+}
+
+/**
+ * The status text to show, in the current language: Google's own detail (if any) followed
+ * by the translated message.
+ *
+ * @param {{ message: string, detail?: string }} current
+ * @returns {string}
+ */
+export function describeStatus(current) {
+  return [current.detail ? t(current.detail) : '', current.message ? t(current.message) : ''].filter(Boolean).join(' ')
 }
 
 /**
@@ -168,16 +185,17 @@ function isOffline() {
 function handleError(error) {
   console.error('[LandlordIQ] Drive sync error:', error)
   if (error instanceof ScriptLoadError) {
-    setStatus('error', `${error.message} A content blocker or privacy setting may be blocking Google; try disabling it for this site.`)
+    setStatus('error', 'A content blocker or privacy setting may be blocking Google; try disabling it for this site.', error.message)
   } else if (error instanceof AuthError || (error instanceof DriveError && error.status === 401)) {
     token = null
     setStatus('needs-auth', 'Sign in again to keep syncing with Google Drive. Your next tap opens Google sign-in.')
   } else if (error instanceof DriveError && error.status === 403) {
-    setStatus('error', `${error.message}. Check the Google Cloud setup (Drive API enabled, test user added).`)
+    setStatus('error', 'Check the Google Cloud setup (Drive API enabled, test user added).', error.message)
   } else if (error instanceof NetworkError || isOffline()) {
     setStatus('offline', "Can't reach Google Drive. Changes are saved on this device and will sync when you're back online.")
   } else {
-    setStatus('error', error?.message || 'Something went wrong while syncing with Google Drive.')
+    if (error?.message) setStatus('error', '', error.message)
+    else setStatus('error', 'Something went wrong while syncing with Google Drive.')
   }
 }
 
@@ -705,12 +723,12 @@ export async function openSharedFile() {
     fileId = await pickFile()
   } catch (error) {
     if (error instanceof AuthError && !wasConnected) setStatus('disconnected')
-    else if (error instanceof AuthError) setStatus(previous.state, previous.message)
+    else if (error instanceof AuthError) setStatus(previous.state, previous.message, previous.detail)
     else handleError(error)
     return
   }
   if (!fileId) {
-    setStatus(wasConnected ? previous.state : 'disconnected', wasConnected ? previous.message : '')
+    setStatus(wasConnected ? previous.state : 'disconnected', wasConnected ? previous.message : '', wasConnected ? previous.detail : '')
     return
   }
 

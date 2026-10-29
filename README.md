@@ -16,6 +16,12 @@ turn on Google Drive sync.
 
 ---
 
+## Language
+
+The two flags at the top switch the app between English and Spanish. The choice is remembered on that
+device only, so each person can use their own language while sharing the same data. Names and notes you
+type are never translated.
+
 ## How Drive sync works
 
 - Click **Connect Google Drive** in the header and sign in. The app creates one file,

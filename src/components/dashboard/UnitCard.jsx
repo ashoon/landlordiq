@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getDaysRelative, formatDueDate, getTodayIso, describePayment, DAYS_PER_MONTH } from '../../data/tenants.js'
 import { formatCurrency, milToAmount } from '../../data/currency.js'
+import { t } from '../../data/i18n.js'
 import EditableDate from './EditableDate.jsx'
 
 /**
@@ -44,11 +45,11 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
   }
 
   const badgeLabels = {
-    paid: 'Paid',
-    'due-soon': 'Due Soon',
-    upcoming: 'Upcoming',
-    overdue: 'Overdue',
-    vacant: 'Vacant',
+    paid: t('Paid'),
+    'due-soon': t('Due Soon'),
+    upcoming: t('Upcoming'),
+    overdue: t('Overdue'),
+    vacant: t('Vacant'),
   }
 
   function getDaysLabel() {
@@ -56,13 +57,13 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
     const days = getDaysRelative(unit.dueDate)
     if (days < 0) {
       const n = Math.abs(days)
-      return { text: `${n} day${n !== 1 ? 's' : ''} overdue`, cls: 'text-red-600' }
+      return { text: n === 1 ? t('1 day overdue') : t('{n} days overdue', { n }), cls: 'text-red-600' }
     }
     if (days === 0) {
-      return { text: 'Due today', cls: 'text-amber-600' }
+      return { text: t('Due today'), cls: 'text-amber-600' }
     }
     return {
-      text: `${days} day${days !== 1 ? 's' : ''} remaining`,
+      text: days === 1 ? t('1 day remaining') : t('{n} days remaining', { n: days }),
       cls: unit.status === 'upcoming' ? 'text-gray-500' : 'text-amber-600',
     }
   }
@@ -70,9 +71,9 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
   const daysLabel = unit.status === 'vacant' ? null : getDaysLabel()
 
   function getVacancyLabel() {
-    if (!unit.vacantSince) return 'No tenant'
+    if (!unit.vacantSince) return t('No tenant')
     const n = Math.max(0, -getDaysRelative(unit.vacantSince))
-    return `Vacant since ${formatDueDate(unit.vacantSince)} · ${n} day${n !== 1 ? 's' : ''}`
+    return `${t('Vacant since')} ${formatDueDate(unit.vacantSince)} · ${n === 1 ? t('1 day') : t('{n} days', { n })}`
   }
 
   return (
@@ -91,11 +92,11 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
           <p className="font-semibold text-gray-500 text-xs sm:text-sm">{getVacancyLabel()}</p>
           {unit.moveInDate && (
             <p className="text-xs font-medium mt-0.5 sm:mt-1 text-gray-700">
-              Move-in {formatDueDate(unit.moveInDate)}
-              {unit.moveInDate <= getTodayIso() ? '' : ' (scheduled)'}
+              {t('Move-in')} {formatDueDate(unit.moveInDate)}
+              {unit.moveInDate <= getTodayIso() ? '' : ` ${t('(scheduled)')}`}
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-1 sm:mt-2">Rent lost</p>
+          <p className="text-xs text-gray-500 mt-1 sm:mt-2">{t('Rent lost')}</p>
           <p className="text-base sm:text-xl font-bold text-gray-500">{formatCurrency(unit.rentAmount)}</p>
         </div>
       ) : (
@@ -105,39 +106,39 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
           <p className="text-base sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{formatCurrency(unit.rentAmount)}</p>
           {hasPartPayment && (
             <p className="text-xs font-medium text-gray-700 mt-0.5">
-              Received {formatCurrency(unit.amountPaid)} · {unit.daysCovered} of {DAYS_PER_MONTH} days
+              {t('Received')} {formatCurrency(unit.amountPaid)} · {t('{days} of {total} days', { days: unit.daysCovered, total: DAYS_PER_MONTH })}
               <br />
-              Balance {formatCurrency(unit.balance)}
+              {t('Balance')} {formatCurrency(unit.balance)}
             </p>
           )}
           {unit.paymentLog.length > 0 && (
-            <ul className="mt-0.5 text-[11px] sm:text-xs text-gray-500" aria-label={`Payments received, ${unit.tenantName}`}>
+            <ul className="mt-0.5 text-[11px] sm:text-xs text-gray-500" aria-label={`${t('Payments received')}, ${unit.tenantName}`}>
               {unit.paymentLog.map((p) => (
                 <li key={p.id}>
-                  {p.date ? formatDueDate(p.date) : 'Earlier'} · {formatCurrency(p.amount)}
+                  {p.date ? formatDueDate(p.date) : t('Earlier')} · {formatCurrency(p.amount)}
                 </li>
               ))}
             </ul>
           )}
           <div className="mt-0.5">
             <EditableDate
-              label="Due"
+              label={t('Due')}
               value={unit.dueDate}
               display={formatDueDate(unit.dueDate)}
               onSave={(date) => onDueDateChange(unit.id, date)}
               textClassName="text-xs text-gray-500"
-              ariaLabel={`Due date, ${unit.tenantName}`}
+              ariaLabel={`${t('Due date')}, ${unit.tenantName}`}
             />
           </div>
           {unit.status === 'paid' && unit.paidDate && (
             <div className="mt-0.5 sm:mt-1">
               <EditableDate
-                label="Paid"
+                label={t('Paid')}
                 value={unit.paidDate}
                 display={formatDueDate(unit.paidDate)}
                 onSave={(date) => onPaidDateChange(unit.id, date)}
                 textClassName="text-xs font-medium text-green-500"
-                ariaLabel={`Date paid, ${unit.tenantName}`}
+                ariaLabel={`${t('Date paid')}, ${unit.tenantName}`}
               />
             </div>
           )}
@@ -156,7 +157,7 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
               : 'border-gray-400 text-gray-600 hover:bg-white'
           }`}
         >
-          {unit.status === 'paid' ? 'Mark as Unpaid' : hasPartPayment ? 'Record payment' : 'Mark as Paid'}
+          {unit.status === 'paid' ? t('Mark as Unpaid') : hasPartPayment ? t('Record payment') : t('Mark as Paid')}
         </button>
       )}
 
@@ -171,10 +172,10 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
             }}
             className="text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-green-600 bg-green-600 text-white hover:bg-green-700"
           >
-            {unit.balance < unit.rentAmount ? `Pay balance ${formatCurrency(unit.balance)}` : 'Paid in full'}
+            {unit.balance < unit.rentAmount ? `${t('Pay balance')} ${formatCurrency(unit.balance)}` : t('Paid in full')}
           </button>
           <label className="text-[11px] sm:text-xs text-gray-600">
-            Or part payment (COP mil)
+            {t('Or part payment (COP mil)')}
             <input
               type="number"
               inputMode="decimal"
@@ -182,16 +183,16 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
               step="5"
               value={amountText}
               onChange={(e) => setAmountText(e.target.value)}
-              placeholder="e.g. 250"
-              aria-label={`Part payment in COP mil, ${unit.tenantName}`}
+              placeholder={t('e.g. 250')}
+              aria-label={`${t('Part payment in COP mil')}, ${unit.tenantName}`}
               className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </label>
           {preview && (
             <p className="text-[11px] sm:text-xs text-gray-700">
               {preview.complete
-                ? 'Covers the full rent'
-                : `${preview.days} of ${DAYS_PER_MONTH} days · balance ${formatCurrency(preview.balance)}`}
+                ? t('Covers the full rent')
+                : `${t('{days} of {total} days', { days: preview.days, total: DAYS_PER_MONTH })} · ${t('balance')} ${formatCurrency(preview.balance)}`}
             </p>
           )}
           <div className="flex gap-1.5">
@@ -204,7 +205,7 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
               }}
               className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-400 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Save
+              {t('Save')}
             </button>
             <button
               onClick={() => {
@@ -213,7 +214,7 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
               }}
               className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
             >
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { getData, setData } from './store.js'
 import { loadSeedUnits } from './seedUnits.js'
 import { getTrackingStart } from './tracking.js'
+import { t, formatLocaleDate, capitalize } from './i18n.js'
 
 /** Days a month is assumed to have when turning a partial payment into days covered. */
 export const DAYS_PER_MONTH = 30
@@ -44,7 +45,7 @@ export function getAvailableMonths() {
     const d = new Date(now.getFullYear(), now.getMonth() + 1 - i, 1)
     return {
       value: getMonthKey(d),
-      label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      label: capitalize(formatLocaleDate(d, { month: 'long', year: 'numeric' })),
     }
   })
 }
@@ -224,9 +225,9 @@ export function getEditableUnits() {
 function validateTenantFields(fields) {
   const rent = Number(fields.rentAmount)
   const day = Number(fields.dueDay)
-  if (!String(fields.tenantName ?? '').trim()) return 'Tenant name is required.'
-  if (!Number.isFinite(rent) || rent <= 0) return 'Rent must be greater than 0.'
-  if (!Number.isInteger(day) || day < 1 || day > 31) return 'Due day must be between 1 and 31.'
+  if (!String(fields.tenantName ?? '').trim()) return t('Tenant name is required.')
+  if (!Number.isFinite(rent) || rent <= 0) return t('Rent must be greater than 0.')
+  if (!Number.isInteger(day) || day < 1 || day > 31) return t('Due day must be between 1 and 31.')
   return null
 }
 
@@ -237,7 +238,7 @@ function validateTenantFields(fields) {
  * @returns {string | null} error message, or null when valid
  */
 export function validateUnit(fields) {
-  if (!String(fields.address ?? '').trim()) return 'Address is required.'
+  if (!String(fields.address ?? '').trim()) return t('Address is required.')
   return validateTenantFields(fields)
 }
 
@@ -335,10 +336,10 @@ function saveTenancies(id, list) {
  * @returns {string | null}
  */
 export function validateMoveOut(id, date) {
-  if (!date) return 'Move-out date is required.'
+  if (!date) return t('Move-out date is required.')
   const { last } = loadTenancies(id)
   if (last.moveIn && date <= last.moveIn) {
-    return `Move-out must be after the move-in date (${formatDueDate(last.moveIn)}).`
+    return t('Move-out must be after the move-in date ({date}).', { date: formatDueDate(last.moveIn) })
   }
   return null
 }
@@ -365,10 +366,10 @@ export function moveOutUnit(id, date) {
 export function validateMoveIn(id, fields) {
   const err = validateTenantFields(fields)
   if (err) return err
-  if (!fields.date) return 'Move-in date is required.'
+  if (!fields.date) return t('Move-in date is required.')
   const { last } = loadTenancies(id)
   if (last.moveOut && fields.date < last.moveOut) {
-    return `Move-in can't be before the previous move-out (${formatDueDate(last.moveOut)}).`
+    return t("Move-in can't be before the previous move-out ({date}).", { date: formatDueDate(last.moveOut) })
   }
   return null
 }
@@ -699,7 +700,7 @@ export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
  * @returns {string | null} error message, or null when valid
  */
 export function validatePartPayment(amount) {
-  if (!Number.isFinite(amount) || amount <= 0) return 'Enter the amount received.'
+  if (!Number.isFinite(amount) || amount <= 0) return t('Enter the amount received.')
   return null
 }
 
@@ -751,7 +752,7 @@ export function recordPartialPayment(id, amount, monthKey = getMonthKey(), date 
 export function validateDate(date) {
   const valid =
     /^\d{4}-\d{2}-\d{2}$/.test(date ?? '') && date >= '2000-01-01' && toIso(parseLocalDate(date)) === date
-  return valid ? null : 'Enter a valid date.'
+  return valid ? null : t('Enter a valid date.')
 }
 
 /**
@@ -810,7 +811,7 @@ export function getDaysRelative(dueDate) {
  * @returns {string}
  */
 export function formatDueDate(dueDate) {
-  return parseLocalDate(dueDate).toLocaleDateString('en-US', {
+  return formatLocaleDate(parseLocalDate(dueDate), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

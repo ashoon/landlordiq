@@ -1,22 +1,37 @@
+import { getLocale } from './i18n.js'
+
 /** App-wide currency. Change here to re-denominate every monetary value in the UI. */
 const CURRENCY = 'COP'
 
-const wholeFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: CURRENCY,
-  maximumFractionDigits: 0,
-})
+// Number formats depend on the chosen language (1,850 in English, 1.850 in Spanish), so build them per locale
+const wholeFormatters = {}
+const milFormatters = {}
 
-const milFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
+function wholeFormatter() {
+  const locale = getLocale()
+  wholeFormatters[locale] ??= new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: CURRENCY,
+    currencyDisplay: 'code', // "COP", not "$", in every language
+    maximumFractionDigits: 0,
+  })
+  return wholeFormatters[locale]
+}
+
+function milFormatter() {
+  const locale = getLocale()
+  milFormatters[locale] ??= new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
+  return milFormatters[locale]
+}
 
 /**
- * Formats a whole-unit monetary amount, e.g. "COP 1,850".
+ * Formats a whole-unit monetary amount, e.g. "COP 1,850" (English) or "COP 1.850" (Spanish).
  *
  * @param {number} amount
  * @returns {string}
  */
 export function formatCurrency(amount) {
-  return wholeFormatter.format(amount)
+  return wholeFormatter().format(amount)
 }
 
 /**
@@ -27,7 +42,7 @@ export function formatCurrency(amount) {
  * @returns {string}
  */
 export function formatMil(amount) {
-  return milFormatter.format(amount / 1000)
+  return milFormatter().format(amount / 1000)
 }
 
 /**

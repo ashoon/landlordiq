@@ -1,9 +1,10 @@
-import { useState } from 'react'
 import { getAvailableMonths } from '../../data/tenants.js'
+import { t, formatToday } from '../../data/i18n.js'
 import DriveStatus from './DriveStatus.jsx'
+import LanguageSwitcher from './LanguageSwitcher.jsx'
 
 /**
- * Header — property name, today's date, Google Drive sync status, month picker, and tab switcher.
+ * Header — property name, today's date, language flags, Google Drive sync status, month picker, and tab switcher.
  *
  * @param {{
  *   activeTab: string,
@@ -13,13 +14,7 @@ import DriveStatus from './DriveStatus.jsx'
  * }} props
  */
 export default function Header({ activeTab, onTabChange, selectedMonth, onMonthChange }) {
-  const [today] = useState(() =>
-    new Date().toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    }),
-  )
+  const today = formatToday()
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -28,18 +23,20 @@ export default function Header({ activeTab, onTabChange, selectedMonth, onMonthC
           <h1 className="text-xl font-bold text-gray-900">LandlordIQ</h1>
           <p className="text-sm text-gray-500">{today}</p>
         </div>
-        <div className="md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
+          <LanguageSwitcher />
           <DriveStatus />
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
-        <div className="hidden md:block">
+        <div className="hidden md:flex md:items-center md:gap-4">
+          <LanguageSwitcher />
           <DriveStatus />
         </div>
         <select
           value={selectedMonth}
           onChange={(e) => onMonthChange(e.target.value)}
-          aria-label="Select month"
+          aria-label={t('Select month')}
           className="min-w-0 px-3 py-2 rounded border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
         >
           {getAvailableMonths().map((m) => (
@@ -57,8 +54,8 @@ export default function Header({ activeTab, onTabChange, selectedMonth, onMonthC
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            <span className="sm:hidden">Units</span>
-            <span className="hidden sm:inline">Units Dashboard</span>
+            <span className="sm:hidden">{t('Units')}</span>
+            <span className="hidden sm:inline">{t('Units Dashboard')}</span>
           </button>
           <button
             onClick={() => onTabChange('analytics')}
@@ -68,8 +65,8 @@ export default function Header({ activeTab, onTabChange, selectedMonth, onMonthC
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            <span className="sm:hidden">Analytics</span>
-            <span className="hidden sm:inline">Financial Analytics</span>
+            <span className="sm:hidden">{t('Analytics')}</span>
+            <span className="hidden sm:inline">{t('Financial Analytics')}</span>
           </button>
         </nav>
       </div>

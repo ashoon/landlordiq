@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { getStatus, subscribeStatus, resolveConflict, connect } from '../../data/driveSync.js'
+import { t } from '../../data/i18n.js'
+import { getStatus, subscribeStatus, describeStatus, resolveConflict, connect } from '../../data/driveSync.js'
 
 /**
  * SyncBanner — full-width notice shown only when Google Drive sync needs attention:
@@ -8,7 +9,8 @@ import { getStatus, subscribeStatus, resolveConflict, connect } from '../../data
  */
 export default function SyncBanner() {
   const status = useSyncExternalStore(subscribeStatus, getStatus)
-  const { state, message } = status
+  const { state } = status
+  const message = describeStatus(status)
 
   if (state === 'conflict') {
     return (
@@ -19,18 +21,17 @@ export default function SyncBanner() {
             onClick={() => resolveConflict('drive')}
             className="text-xs font-medium px-3 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700"
           >
-            Use Drive copy
+            {t('Use Drive copy')}
           </button>
           <button
             onClick={() => resolveConflict('mine')}
             className="text-xs font-medium px-3 py-1.5 rounded border border-gray-400 text-gray-700 bg-white hover:bg-gray-50"
           >
-            Keep this device&apos;s copy
+            {t("Keep this device's copy")}
           </button>
         </div>
         <p className="w-full text-xs text-gray-500">
-          &quot;Use Drive copy&quot; first saves a backup of this device&apos;s data on this device.
-          &quot;Keep this device&apos;s copy&quot; overwrites the Drive file.
+          {t("\"Use Drive copy\" first saves a backup of this device's data on this device. \"Keep this device's copy\" overwrites the Drive file.")}
         </p>
       </div>
     )
@@ -39,12 +40,12 @@ export default function SyncBanner() {
   if (state === 'needs-auth') {
     return (
       <div role="alert" className="bg-red-50 border-b border-red-500 px-4 sm:px-6 py-2 flex items-center gap-3">
-        <p className="text-sm text-red-500">{message} Your changes are safe on this device.</p>
+        <p className="text-sm text-red-500">{message} {t('Your changes are safe on this device.')}</p>
         <button
           onClick={() => connect()}
           className="ml-auto text-xs font-medium px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
         >
-          Reconnect
+          {t('Reconnect')}
         </button>
       </div>
     )

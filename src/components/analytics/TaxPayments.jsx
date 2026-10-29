@@ -7,6 +7,7 @@ import {
 } from '../../data/financials.js'
 import { getTodayIso, formatDueDate } from '../../data/tenants.js'
 import { formatCurrencyMil, milToAmount } from '../../data/currency.js'
+import { t } from '../../data/i18n.js'
 
 const inputCls =
   'w-full px-2 py-1.5 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white'
@@ -51,18 +52,18 @@ export default function TaxPayments({ onChange }) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">Annual Property Tax</h3>
+      <h3 className="text-sm font-semibold text-gray-700">{t('Annual Property Tax')}</h3>
       <p className="text-xs text-gray-500 mb-4">
-        Paid once a year. Counted as an expense in the month it was paid.
+        {t('Paid once a year. Counted as an expense in the month it was paid.')}
       </p>
 
       <form onSubmit={submit} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
         <label className="text-xs text-gray-500">
-          Tax year
+          {t('Tax year')}
           <input className={`mt-1 ${inputCls}`} type="number" value={form.year} onChange={setField('year')} />
         </label>
         <label className="text-xs text-gray-500">
-          Amount (COP mil)
+          {t('Amount (COP mil)')}
           <input
             className={`mt-1 ${inputCls}`}
             type="number"
@@ -70,16 +71,16 @@ export default function TaxPayments({ onChange }) {
             step="any"
             value={form.amount}
             onChange={setField('amount')}
-            placeholder="e.g. 3700"
+            placeholder={t('e.g. 3700')}
           />
         </label>
         <label className="text-xs text-gray-500">
-          Date paid
+          {t('Date paid')}
           <input className={`mt-1 ${inputCls}`} type="date" value={form.paidDate} onChange={setField('paidDate')} />
         </label>
         <label className="text-xs text-gray-500">
-          Note (optional)
-          <input className={`mt-1 ${inputCls}`} value={form.note} onChange={setField('note')} placeholder="e.g. Predial" />
+          {t('Note (optional)')}
+          <input className={`mt-1 ${inputCls}`} value={form.note} onChange={setField('note')} placeholder={t('e.g. Predial')} />
         </label>
         <div className="col-span-2 md:col-span-4 flex items-center justify-between">
           <p className="text-sm text-red-500">{error}</p>
@@ -87,21 +88,21 @@ export default function TaxPayments({ onChange }) {
             type="submit"
             className="text-xs font-medium px-4 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700"
           >
-            Record Tax Payment
+            {t('Record Tax Payment')}
           </button>
         </div>
       </form>
 
       {payments.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-400">No tax payments recorded yet.</p>
+        <p className="mt-4 text-sm text-gray-400">{t('No tax payments recorded yet.')}</p>
       ) : (
         <ul className="mt-4 border-t border-gray-200 divide-y divide-gray-100">
           {payments.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
               <span className="min-w-0">
-                <span className="font-medium text-gray-900">{p.year} tax</span>
+                <span className="font-medium text-gray-900">{t('{year} tax', { year: p.year })}</span>
                 <span className="block truncate text-xs text-gray-500">
-                  Paid {formatDueDate(p.paidDate)}
+                  {t('Paid')} {formatDueDate(p.paidDate)}
                   {p.note && ` · ${p.note}`}
                 </span>
               </span>
@@ -109,10 +110,10 @@ export default function TaxPayments({ onChange }) {
                 <span className="font-medium text-gray-900">{formatCurrencyMil(p.amount)}</span>
                 <button
                   onClick={() => remove(p.id)}
-                  aria-label={`Delete ${p.year} tax payment`}
+                  aria-label={`${t('Delete')} ${t('{year} tax', { year: p.year })}`}
                   className="text-xs text-red-500 hover:underline"
                 >
-                  Delete
+                  {t('Delete')}
                 </button>
               </span>
             </li>

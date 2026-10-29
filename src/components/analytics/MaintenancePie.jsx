@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { formatCurrency } from '../../data/currency.js'
+import { t } from '../../data/i18n.js'
 
 const COLORS = {
   Plumbing: '#60a5fa',
@@ -16,13 +17,13 @@ const COLORS = {
 export default function MaintenancePie({ month }) {
   const data = Object.entries(month.maintenanceCosts)
     .filter(([, v]) => v > 0)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name: t(name), key: name, value }))
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Maintenance by Category</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-4">{t('Maintenance by Category')}</h3>
       {data.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-8">No maintenance costs this month</p>
+        <p className="text-sm text-gray-400 text-center py-8">{t('No maintenance costs this month')}</p>
       ) : (
         <ResponsiveContainer width="100%" height={240}>
           <PieChart>
@@ -36,7 +37,7 @@ export default function MaintenancePie({ month }) {
               dataKey="value"
             >
               {data.map((d) => (
-                <Cell key={d.name} fill={COLORS[d.name] ?? COLORS.Other} />
+                <Cell key={d.key} fill={COLORS[d.key] ?? COLORS.Other} />
               ))}
             </Pie>
             <Tooltip formatter={formatCurrency} />

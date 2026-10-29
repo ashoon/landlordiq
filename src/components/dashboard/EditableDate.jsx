@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { validateDate } from '../../data/tenants.js'
+import { t } from '../../data/i18n.js'
 
 /**
  * EditableDate — a date shown as plain text that turns into a date field only when clicked.
@@ -45,7 +46,7 @@ export default function EditableDate({ label, value, display, onSave, textClassN
       <button
         type="button"
         onClick={start}
-        aria-label={`${ariaLabel}: ${display}. Click to change.`}
+        aria-label={`${ariaLabel}: ${display}. ${t('Click to change.')}`}
         className={`block text-left ${textClassName} hover:underline decoration-dotted underline-offset-2 cursor-pointer`}
       >
         {label} {display}

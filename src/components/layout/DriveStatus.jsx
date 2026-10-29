@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react'
 import {
   getStatus,
   subscribeStatus,
+  describeStatus,
   isDriveConfigured,
   isPickerConfigured,
   openSharedFile,
@@ -9,6 +10,7 @@ import {
   disconnect,
   flush,
 } from '../../data/driveSync.js'
+import { t, getLocale } from '../../data/i18n.js'
 
 const STATES = {
   disconnected: { label: 'Google Drive: not connected', dot: 'bg-gray-400', text: 'text-gray-600' },
@@ -46,15 +48,15 @@ export default function DriveStatus() {
           onClick={() => connect()}
           className="text-xs font-medium px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
         >
-          {status.state === 'needs-auth' ? 'Reconnect Google Drive' : 'Connect Google Drive'}
+          {status.state === 'needs-auth' ? t('Reconnect Google Drive') : t('Connect Google Drive')}
         </button>
         {status.state === 'disconnected' && isPickerConfigured() && (
           <button
             onClick={() => openSharedFile()}
-            title="Open a landlordiq-data.json file that someone shared with your Google account"
+            title={t('Open a landlordiq-data.json file that someone shared with your Google account')}
             className="text-xs font-medium px-3 py-2 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
           >
-            Open shared file
+            {t('Open shared file')}
           </button>
         )}
       </div>
@@ -62,7 +64,7 @@ export default function DriveStatus() {
   }
 
   const lastSynced = status.lastSynced
-    ? new Date(status.lastSynced).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    ? new Date(status.lastSynced).toLocaleTimeString(getLocale(), { hour: 'numeric', minute: '2-digit' })
     : null
 
   return (
@@ -70,15 +72,15 @@ export default function DriveStatus() {
       <button
         onClick={() => setMenuOpen((o) => !o)}
         aria-expanded={menuOpen}
-        title={status.message || undefined}
+        title={describeStatus(status) || undefined}
         className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 ${state.text}`}
       >
         <span className={`inline-block h-2 w-2 rounded-full ${state.dot}`} />
-        {state.label}
+        {t(state.label)}
       </button>
       {menuOpen && (
         <div className="absolute right-0 z-10 mt-1 w-56 rounded border border-gray-200 bg-white p-3 shadow-md space-y-2">
-          {lastSynced && <p className="text-xs text-gray-500">Last saved to Drive at {lastSynced}</p>}
+          {lastSynced && <p className="text-xs text-gray-500">{t('Last saved to Drive at')} {lastSynced}</p>}
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -87,7 +89,7 @@ export default function DriveStatus() {
               }}
               className={btnCls}
             >
-              Save now
+              {t('Save now')}
             </button>
             <button
               onClick={() => {
@@ -96,7 +98,7 @@ export default function DriveStatus() {
               }}
               className={`${btnCls} text-red-500 border-red-500 hover:bg-red-50`}
             >
-              Disconnect
+              {t('Disconnect')}
             </button>
           </div>
           {isPickerConfigured() && (
@@ -107,10 +109,10 @@ export default function DriveStatus() {
               }}
               className={`${btnCls} w-full`}
             >
-              Open a shared file…
+              {t('Open a shared file…')}
             </button>
           )}
-          <p className="text-xs text-gray-400">Disconnecting keeps your data on this device and on Drive.</p>
+          <p className="text-xs text-gray-400">{t('Disconnecting keeps your data on this device and on Drive.')}</p>
         </div>
       )}
     </div>
