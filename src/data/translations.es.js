@@ -253,4 +253,6 @@ export default {
   'Choose a file first.': 'Primero elige un archivo.',
   'Only photos and PDF files can be attached.': 'Solo se pueden adjuntar fotos y archivos PDF.',
   'That file is too large (10 MB maximum).': 'Ese archivo es demasiado grande (máximo 10 MB).',
+  'Receipt photo or PDF (optional)': 'Foto o PDF del recibo (opcional)',
+  'Expense saved, but the receipt was not uploaded.': 'Gasto guardado, pero el recibo no se subió.',
 }

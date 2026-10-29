@@ -44,7 +44,7 @@ const FOLDER_PATH = ['Colombia', 'Apartments']
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const BACKUP_PREFIX = 'landlordiq-backup-'
 const BACKUP_MIME = 'application/json'
-const BACKUP_RETENTION_DAYS = 90
+const BACKUP_RETENTION_DAYS = 30
 const SAVE_DELAY_MS = 1500
 /** How often an open, visible tab checks Drive for changes made by someone else. */
 const POLL_INTERVAL_MS = 30_000

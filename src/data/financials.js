@@ -73,12 +73,14 @@ export function getExpenseAddress(expense) {
  *
  * @param {string} monthKey - "YYYY-MM"
  * @param {{ category: string, amount: number|string, note?: string, unitId?: string }} fields
+ * @returns {string} the new expense's id
  */
 export function addExpense(monthKey, fields) {
   const expenses = readExpenses()
   const unit = fields.unitId ? getUnits().find((u) => u.id === fields.unitId) : null
+  const id = `E${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   expenses.push({
-    id: `E${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id,
     month: monthKey,
     category: fields.category,
     amount: Number(fields.amount),
@@ -86,6 +88,7 @@ export function addExpense(monthKey, fields) {
     ...(unit ? { unitId: unit.id, address: unit.address } : {}),
   })
   setData('expenses', expenses)
+  return id
 }
 
 /**

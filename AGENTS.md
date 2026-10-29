@@ -159,6 +159,8 @@ Helpers: `getEditableUnits`, `validateUnit`, `updateUnit`, `addUnit`, `deleteUni
   needs-auth | offline | conflict | error` (`getStatus`, `subscribeStatus`). Sync metadata (`landlordiq_drive_meta`:
   connected, fileId, version, dirty, lastSynced, shared, loginHint = Google email passed as `login_hint`) is never uploaded. After a refused silent sign-in (`needs-auth`) the next click anywhere runs `connect()` once (`armNextTapReconnect`). Without `VITE_GOOGLE_CLIENT_ID` the app is
   local-only.
+- **Daily backup:** once a day `writeDailyBackup()` saves a copy of all data as `landlordiq-backup-YYYY-MM-DD.json` in the
+  same Drive folder, and `pruneOldBackups()` permanently deletes backups older than `BACKUP_RETENTION_DAYS` (30). Both are best effort.
 - **File picker (shared files):** `openSharedFile()` in `driveSync.js` opens Google's Picker (script `apis.google.com/js/api.js`,
   needs `VITE_GOOGLE_API_KEY`; `isPickerConfigured()` gates the UI buttons) so an account that was *shared* the data file
   can grant the app access to it (`drive.file`). It sets meta `{ fileId, shared: true, dirty: !isEmpty() }`, clears the
@@ -328,7 +330,7 @@ messages are English texts translated on display (`describeStatus`); Google's ow
 ### Attachments (contract scans, receipts)
 
 Photos and PDFs can be attached to a **tenant's contract** (`ManageUnits.jsx`, button "Attach contract" under the tenant)
-and to **maintenance expenses** and **annual tax payments** ("Attach receipt"). One shared component,
+and to **maintenance expenses** and **annual tax payments** ("Attach receipt"). The Add Expense form also takes a receipt: the expense is saved first, then the file uploads, so a failed upload never loses the expense. One shared component,
 `components/common/AttachmentList.jsx`, and one helper module, `src/data/attachments.js`, serve all three.
 
 - **Files live on Google Drive, never in the synced JSON.** They are uploaded to `Colombia/Apartments/Contracts` or

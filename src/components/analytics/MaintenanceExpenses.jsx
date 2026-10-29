@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import {
   EXPENSE_CATEGORIES,
   getExpenses,
@@ -12,6 +12,15 @@ import {
 } from '../../data/financials.js'
 import { formatCurrencyMil, milToAmount } from '../../data/currency.js'
 import AttachmentList from '../common/AttachmentList.jsx'
+import {
+  ACCEPTED_TYPES,
+  validateAttachment,
+  uploadFile,
+  isUploadAvailable,
+  describeAttachmentError,
+  getStatus,
+  subscribeStatus,
+} from '../../data/attachments.js'
 import { t, formatLocaleDate, capitalize } from '../../data/i18n.js'
 
 const EMPTY_FORM = { category: EXPENSE_CATEGORIES[0], unitId: '', amount: '', note: '' }
@@ -32,6 +41,12 @@ const inputCls =
 export default function MaintenanceExpenses({ month, onChange }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
+  const [receipt, setReceipt] = useState(null)
+  // Changing the key empties the file input after a save
+  const [receiptKey, setReceiptKey] = useState(0)
+  const [saving, setSaving] = useState(false)
+  useSyncExternalStore(subscribeStatus, getStatus)
+  const canAttach = isUploadAvailable()
 
   const expenses = getExpenses(month)
   const unitOptions = getExpenseUnitOptions()
@@ -44,7 +59,20 @@ export default function MaintenanceExpenses({ month, onChange }) {
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  function submit(e) {
+  function pickReceipt(e) {
+    const file = e.target.files?.[0] ?? null
+    const problem = file ? validateAttachment(file) : ''
+    if (problem) {
+      setError(t(problem))
+      e.target.value = ''
+      setReceipt(null)
+      return
+    }
+    setError('')
+    setReceipt(file)
+  }
+
+  async function submit(e) {
     e.preventDefault()
     const entry = { ...form, amount: milToAmount(form.amount) }
     const err = validateExpense(entry)
@@ -52,10 +80,24 @@ export default function MaintenanceExpenses({ month, onChange }) {
       setError(err)
       return
     }
-    addExpense(month, entry)
+    // The expense is saved first, so a failed upload never loses it
+    const id = addExpense(month, entry)
+    const file = receipt
     setForm((f) => ({ ...EMPTY_FORM, category: f.category, unitId: f.unitId }))
+    setReceipt(null)
+    setReceiptKey((k) => k + 1)
     setError('')
     onChange?.()
+    if (!file) return
+    setSaving(true)
+    try {
+      addExpenseFile(id, await uploadFile(file, 'receipts'))
+    } catch (uploadError) {
+      setError(`${t('Expense saved, but the receipt was not uploaded.')} ${describeAttachmentError(uploadError)}`)
+    } finally {
+      setSaving(false)
+      onChange?.()
+    }
   }
 
   function remove(id) {
@@ -111,13 +153,26 @@ export default function MaintenanceExpenses({ month, onChange }) {
             placeholder={t('e.g. Unit 304 leaking faucet')}
           />
         </label>
+        <label className="col-span-2 text-xs text-gray-500">
+          {t('Receipt photo or PDF (optional)')}
+          <input
+            key={receiptKey}
+            className={`mt-1 ${inputCls} disabled:opacity-40`}
+            type="file"
+            accept={ACCEPTED_TYPES}
+            disabled={!canAttach || saving}
+            onChange={pickReceipt}
+          />
+          {!canAttach && <span className="block mt-1 text-gray-400">{t('Connect Google Drive to attach or open files.')}</span>}
+        </label>
         <div className="col-span-2 flex items-center justify-between">
           <p className="text-sm text-red-500">{error}</p>
           <button
             type="submit"
-            className="text-xs font-medium px-4 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700"
+            disabled={saving}
+            className="text-xs font-medium px-4 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-40"
           >
-            {t('Add Expense')}
+            {saving ? t('Uploading…') : t('Add Expense')}
           </button>
         </div>
       </form>
