@@ -470,6 +470,19 @@ function compareTenants(a, b) {
 }
 
 /**
+ * Reorders tenant rows to follow a previously captured list of unit ids, so a tile stays where it
+ * was after an edit that would otherwise re-sort it. Ids missing from `order` (new units) go last.
+ *
+ * @param {Array<Object>} tenants - rows from getAllTenants()
+ * @param {string[]} order - unit ids in the order to keep
+ * @returns {Array<Object>}
+ */
+export function sortByOrder(tenants, order) {
+  const rank = new Map(order.map((id, index) => [id, index]))
+  return [...tenants].sort((a, b) => (rank.get(a.id) ?? order.length) - (rank.get(b.id) ?? order.length))
+}
+
+/**
  * Reads the stored payment records and merges them into the JSON seed data for a month.
  * A month is unpaid until marked paid: no payment history is assumed.
  * One row per unit: the tenant living there on the due date (with computed `status`

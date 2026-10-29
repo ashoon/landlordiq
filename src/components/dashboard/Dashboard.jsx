@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { getAllTenants, setPaymentStatus, setPaidDate, setDueDate } from '../../data/tenants.js'
+import { getAllTenants, setPaymentStatus, setPaidDate, setDueDate, sortByOrder } from '../../data/tenants.js'
 import FilterBar from './FilterBar.jsx'
 import UnitCard from './UnitCard.jsx'
 import ManageUnits from './ManageUnits.jsx'
@@ -14,9 +14,16 @@ export default function Dashboard({ month, onStatsChange }) {
   const [searchQuery, setSearchQuery] = useState('')
   // refreshKey forces re-read from tenants.js (which reads the store) after a toggle
   const [refreshKey, setRefreshKey] = useState(0)
+  // Tile order kept after a date edit so the tile doesn't jump to a new status position.
+  // Cleared (back to the normal sort) when the filter, search or month changes or a unit is marked paid/unpaid.
+  const [pinned, setPinned] = useState(null) // { month, ids } | null
+
+  // A pinned order belongs to one month; drop it when the month changes
+  if (pinned && pinned.month !== month) setPinned(null)
 
   // Re-reads the store on every render cycle that needs it
-  const allTenants = getAllTenants(month)
+  const freshTenants = getAllTenants(month)
+  const allTenants = pinned && pinned.month === month ? sortByOrder(freshTenants, pinned.ids) : freshTenants
 
   const tenants = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -31,38 +38,57 @@ export default function Dashboard({ month, onStatsChange }) {
       return matchesStatus && matchesSearch
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, searchQuery, refreshKey, month])
+  }, [filterStatus, searchQuery, refreshKey, month, pinned])
 
   function handleUnitsChange() {
+    setPinned(null)
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
   }
 
   function handleTogglePaid(id, paid) {
     setPaymentStatus(id, paid, month)
+    setPinned(null)
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
   }
 
+  // Keeps the order shown now (set once, so several edits in a row don't reshuffle either)
+  function pinCurrentOrder() {
+    setPinned((p) => (p && p.month === month ? p : { month, ids: allTenants.map((t) => t.id) }))
+  }
+
   function handlePaidDateChange(id, date) {
+    pinCurrentOrder()
     setPaidDate(id, date, month)
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
   }
 
   function handleDueDateChange(id, date) {
+    pinCurrentOrder()
     setDueDate(id, date, month)
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
+  }
+
+  function handleFilterChange(status) {
+    setPinned(null)
+    setFilterStatus(status)
+  }
+
+  function handleSearchChange(query) {
+    setPinned(null)
+    setSearchQuery(query)
   }
 
   return (
     <div className="p-4 sm:p-6">
       <FilterBar
         activeFilter={filterStatus}
-        onFilterChange={setFilterStatus}
+        onFilterChange={handleFilterChange}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
       />
       {allTenants.length === 0 ? (
         <p className="text-gray-500 text-sm">
