@@ -160,7 +160,7 @@ Helpers: `getEditableUnits`, `validateUnit`, `updateUnit`, `addUnit`, `deleteUni
   connected, fileId, version, dirty, lastSynced, shared, loginHint = Google email passed as `login_hint`) is never uploaded. After a refused silent sign-in (`needs-auth`) the next click anywhere runs `connect()` once (`armNextTapReconnect`). Without `VITE_GOOGLE_CLIENT_ID` the app is
   local-only.
 - **Daily backup:** once a day `writeDailyBackup()` saves a copy of all data as `landlordiq-backup-YYYY-MM-DD.json` in the
-  same Drive folder, and `pruneOldBackups()` permanently deletes backups older than `BACKUP_RETENTION_DAYS` (30). Both are best effort.
+  same Drive folder, and `pruneOldBackups()` permanently deletes backups older than `BACKUP_RETENTION_DAYS` (60). Both are best effort.
 - **File picker (shared files):** `openSharedFile()` in `driveSync.js` opens Google's Picker (script `apis.google.com/js/api.js`,
   needs `VITE_GOOGLE_API_KEY`; `isPickerConfigured()` gates the UI buttons) so an account that was *shared* the data file
   can grant the app access to it (`drive.file`). It sets meta `{ fileId, shared: true, dirty: !isEmpty() }`, clears the
