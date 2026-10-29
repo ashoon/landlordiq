@@ -254,8 +254,11 @@ their own record. Rules (constants `GRACE_DAYS` 7, `FLAG_THRESHOLD` 2):
 
 - A month is **judged** once the rent is fully paid, or today is more than 7 days past its due date (edited due dates count).
 - **Late**: full rent arrived more than 7 days after the due date, or is still not fully paid. A past month nobody
-  marked therefore counts as late (accepted by the owner). A paid month with no paid date counts as on time.
-- **Part-payment month**: the month has dated payments that are not a single payment covering the rent.
+  marked therefore counts as late (accepted by the owner).
+  A paid month always has a paid date; with part payments it is the date the last one completed the rent, so rent paid in
+  several parts within 7 days of the due date is on time.
+- **Part-payment month**: the rent was paid (or is being paid) in more than one payment, or one payment is recorded and a
+  balance is still open. A single payment of the whole rent is not.
 - **Pays late** = 2 or more late months; **Pays in parts** = 2 or more part-payment months.
 
 Shown in `analytics/TenantInsights.jsx` (table for the selected month; **only flagged tenants are listed** until the "Show all tenants" button is pressed, `isFlagged()` in `insights.js`; `*` marks fewer than 6 judged months) and as a

@@ -82,15 +82,16 @@ function isJudged(row) {
 }
 
 /**
- * Returns whether a judged month is late: the rent was not fully paid, or the last payment
- * arrived more than GRACE_DAYS after the due date.
+ * Returns whether a judged month is late: the rent was not fully paid, or the payment that completed it
+ * arrived more than GRACE_DAYS after the due date. A month that is paid always has a paid date (every
+ * place that marks a month paid sets it), and that date is when the last part payment completed the rent,
+ * so rent paid in several parts within GRACE_DAYS is on time.
  *
- * @param {{ dueDate: string, paidCurrentMonth: boolean, paidDate: string | null }} row
+ * @param {{ dueDate: string, paidCurrentMonth: boolean, paidDate: string }} row
  * @returns {boolean}
  */
 function isLate(row) {
-  if (!row.paidCurrentMonth) return true   // unpaid past due + grace = late
-  if (!row.paidDate) return false           // legacy: no date — cannot confirm late, treat as on time
+  if (!row.paidCurrentMonth) return true // unpaid past due + grace = late
   const due = parseDate(row.dueDate)
   const paid = parseDate(row.paidDate)
   const diffDays = Math.round((paid - due) / (1000 * 60 * 60 * 24))
@@ -112,9 +113,10 @@ function daysLate(row) {
 }
 
 /**
- * Returns whether a month is a part-payment month: the first dated payment was less than
- * the full rent, or there are payments but the balance is still open.
- * Marking a month paid in one go ("Paid in full") is not a part-payment month.
+ * Returns whether a month is a part-payment month: the rent was paid (or is being paid) in more than one
+ * payment, or one payment is recorded and a balance is still open. Marking a month paid in one go
+ * ("Paid in full", or a single payment of the whole rent) is not a part-payment month. Part payments
+ * never add up to more than the rent, so two full-rent payments cannot happen.
  *
  * @param {{ paymentLog: Array<{ id: string, amount: number, date: string | null }>, balance: number, rentAmount: number }} row
  * @returns {boolean}
@@ -122,9 +124,8 @@ function daysLate(row) {
 function isPartPayment(row) {
   const log = row.paymentLog ?? []
   if (log.length === 0) return false
-  // If paid in full in a single transaction (log length 1, amount === rent, no balance)
-  if (log.length === 1 && row.balance === 0 && log[0].amount >= row.rentAmount) return false
-  // Any payment received with a balance still open, or first payment was less than rent
+  // One payment that covered the whole rent
+  if (log.length === 1 && row.balance === 0) return false
   return true
 }
 
