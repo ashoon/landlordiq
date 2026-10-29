@@ -57,6 +57,7 @@ landlordiq/
 │   │   ├── tracking.js                 # Tracking start month (settings); hides earlier months, deletes nothing
 │   │   ├── paymentHistory.js           # Per-tenant month-by-month payment history (computed, nothing stored)
 │   │   ├── insights.js                 # Tenant insights: who pays late / in parts (computed, nothing stored)
+│   │   ├── attachments.js              # Photo/PDF attach helper: validate, shrink photos, upload to Drive, reference lists
 │   │   ├── currency.js                 # COP formatting + "mil" helpers (number format follows the language)
 │   │   ├── i18n.js                     # English/Spanish: t(), getLanguage/setLanguage, locale date helpers
 │   │   ├── translations.es.js          # Spanish texts, keyed by the English text
@@ -64,6 +65,8 @@ landlordiq/
 │   │   ├── merge.js                    # Pure three-way merge (base/local/remote) used by driveSync
 │   │   └── driveSync.js                # Google Drive sync (sign-in, debounce, polling, merging)
 │   └── components/
+│       ├── common/
+│       │   └── AttachmentList.jsx      # File list + "Attach" button (contract scans, receipts)
 │       ├── layout/
 │       │   ├── Header.jsx              # Property name, date, Drive status, month picker, tab switcher
 │       │   ├── DriveStatus.jsx         # Connect / Reconnect / Save now / Disconnect chip
@@ -321,6 +324,29 @@ Dates, month names and number formats (`1.850.000` in Spanish) follow the langua
 Stored data (tenant names, notes, categories as saved) is never translated; expense categories are stored in English
 and translated only for display. **New user-visible text must go through `t()` and get a Spanish entry.** Drive status
 messages are English texts translated on display (`describeStatus`); Google's own error text is kept in `detail`.
+
+### Attachments (contract scans, receipts)
+
+Photos and PDFs can be attached to a **tenant's contract** (`ManageUnits.jsx`, button "Attach contract" under the tenant)
+and to **maintenance expenses** and **annual tax payments** ("Attach receipt"). One shared component,
+`components/common/AttachmentList.jsx`, and one helper module, `src/data/attachments.js`, serve all three.
+
+- **Files live on Google Drive, never in the synced JSON.** They are uploaded to `Colombia/Apartments/Contracts` or
+  `Colombia/Apartments/Receipts` (`uploadAttachment`, `openAttachment`, `trashAttachment` at the end of `driveSync.js`;
+  scope `drive.file` already covers files the app creates). The data only keeps a reference
+  `{ id (Drive file id), name, mimeType, uploadedAt }` in an array: `contractFiles` on the **tenancy** (so it follows the
+  tenant, not the apartment), `attachments` on an expense or tax payment. References carry an `id`, so `merge.js` needs no change.
+- `attachments.js`: `validateAttachment` (photo or PDF, PDFs up to 10 MB), `uploadFile` (photos are shrunk client-side to
+  1600 px JPEG first), `withAttachment` / `withoutAttachment`, `trashAttachments`. Data fns: `addContractFile`,
+  `removeContractFile` (`tenants.js`); `addExpenseFile`, `removeExpenseFile`, `addTaxFile`, `removeTaxFile` (`financials.js`).
+- Removing a reference, deleting an expense / tax payment / unit, or cancelling a scheduled move-in moves the Drive files to
+  the trash (best effort, `trashAttachment`). Contract files stay with an ended tenancy as history.
+- Uploading and opening need Drive connected and online (`isUploadAvailable()`); otherwise the button is disabled with a hint.
+  Uploads are not queued. A file opens by downloading it through the API into a blob shown in a new tab.
+- **Limits:** a second Google account that was shared the data file sees the references but cannot open the files
+  (`drive.file` only grants access to files the app created for that account). The upload paths were not exercised against
+  a real Drive account when written; only the data logic was checked.
+- **Privacy:** contracts and cédulas are sensitive; they live only in the user's Drive and browser, never in git or the build.
 
 ### Costs
 

@@ -890,3 +890,114 @@ export function disconnect() {
     setStatus('disconnected')
   })
 }
+
+// ---------------------------------------------------------------- attachments (contracts, receipts)
+
+const ATTACHMENT_FOLDERS = { contracts: 'Contracts', receipts: 'Receipts' }
+const attachmentFolderIds = {}
+
+/** Returns the id of Colombia/Apartments/<Contracts|Receipts>, creating it. Cached per session. */
+function ensureAttachmentFolder(kind) {
+  const name = ATTACHMENT_FOLDERS[kind]
+  if (!name) return Promise.reject(new Error('Unknown attachment folder.'))
+  attachmentFolderIds[kind] ??= ensureFolderPath()
+    .then((parentId) => ensureFolder(name, parentId))
+    .catch((error) => {
+      delete attachmentFolderIds[kind]
+      throw error
+    })
+  return attachmentFolderIds[kind]
+}
+
+/** Runs a Drive task after the sync queue, with a fresh token. Sign-in problems also update the sync status. */
+function withDrive(task) {
+  return enqueue(async () => {
+    try {
+      await ensureToken()
+      return await task()
+    } catch (error) {
+      if (error instanceof AuthError || (error instanceof DriveError && error.status === 401)) handleError(error)
+      throw error
+    }
+  })
+}
+
+/**
+ * Whether files can be uploaded or opened right now: Drive is connected, signed in and online.
+ *
+ * @returns {boolean}
+ */
+export function isUploadAvailable() {
+  if (!CLIENT_ID || !getMeta().connected || isOffline()) return false
+  return !['disabled', 'disconnected', 'connecting', 'needs-auth', 'offline', 'conflict'].includes(status.state)
+}
+
+/**
+ * Uploads a file to its own folder on Google Drive. The file never goes into the synced JSON.
+ *
+ * @param {Blob} blob - the content (a File or an already shrunken image)
+ * @param {string} name - file name to store
+ * @param {'contracts'|'receipts'} kind - target folder
+ * @returns {Promise<{ id: string, name: string, mimeType: string, uploadedAt: string }>} the reference to keep
+ */
+export function uploadAttachment(blob, name, kind) {
+  return withDrive(async () => {
+    const parentId = await ensureAttachmentFolder(kind)
+    const mimeType = blob.type || 'application/octet-stream'
+    const boundary = `landlordiq${Math.random().toString(36).slice(2)}`
+    const head =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+      `${JSON.stringify({ name, mimeType, parents: [parentId] })}\r\n` +
+      `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`
+    const response = await api(`${UPLOAD}/files?uploadType=multipart&fields=id`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body: new Blob([head, blob, `\r\n--${boundary}--`]),
+    })
+    const { id } = await response.json()
+    return { id, name, mimeType, uploadedAt: new Date().toISOString() }
+  })
+}
+
+/**
+ * Opens an uploaded file in a new browser tab. Call it straight from a click handler: the tab is
+ * opened first (so pop-up blockers allow it) and pointed at the file once it has downloaded.
+ *
+ * @param {string} id - Drive file id
+ * @returns {Promise<void>}
+ */
+export async function openAttachment(id) {
+  const tab = globalThis.window?.open('', '_blank')
+  try {
+    const blob = await withDrive(async () => (await api(`${API}/files/${id}?alt=media`)).blob())
+    const url = URL.createObjectURL(blob)
+    if (tab) tab.location.href = url
+    else globalThis.window.location.href = url
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (error) {
+    tab?.close()
+    throw error
+  }
+}
+
+/**
+ * Moves an uploaded file to the Drive trash. Best effort: never throws, and does nothing when
+ * Drive is not available (the file then stays on Drive, where it can be deleted by hand).
+ *
+ * @param {string} id - Drive file id
+ * @returns {Promise<void>}
+ */
+export async function trashAttachment(id) {
+  if (!isUploadAvailable()) return
+  try {
+    await withDrive(() =>
+      api(`${API}/files/${id}?fields=id`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trashed: true }),
+      }),
+    )
+  } catch {
+    // The reference is already gone from the data; a leftover file in Drive is harmless
+  }
+}

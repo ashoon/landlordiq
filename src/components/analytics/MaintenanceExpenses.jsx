@@ -7,8 +7,11 @@ import {
   validateExpense,
   addExpense,
   deleteExpense,
+  addExpenseFile,
+  removeExpenseFile,
 } from '../../data/financials.js'
 import { formatCurrencyMil, milToAmount } from '../../data/currency.js'
+import AttachmentList from '../common/AttachmentList.jsx'
 import { t, formatLocaleDate, capitalize } from '../../data/i18n.js'
 
 const EMPTY_FORM = { category: EXPENSE_CATEGORIES[0], unitId: '', amount: '', note: '' }
@@ -120,13 +123,26 @@ export default function MaintenanceExpenses({ month, onChange }) {
       </form>
 
       {expenses.length > 0 && (
-        <ul className="mt-4 border-t border-gray-200 divide-y divide-gray-100 max-h-48 overflow-y-auto">
+        <ul className="mt-4 border-t border-gray-200 divide-y divide-gray-100 max-h-80 overflow-y-auto">
           {expenses.map((e) => (
-            <li key={e.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+            <li key={e.id} className="flex items-start justify-between gap-3 py-2 text-sm">
               <span className="min-w-0">
                 <span className="font-medium text-gray-900">{t(e.category)}</span>
                 {getExpenseAddress(e) && <span className="text-gray-500"> · {getExpenseAddress(e)}</span>}
                 {e.note && <span className="block truncate text-xs text-gray-500">{e.note}</span>}
+                <AttachmentList
+                  files={e.attachments}
+                  kind="receipts"
+                  label={t('Attach receipt')}
+                  onAdd={(ref) => {
+                    addExpenseFile(e.id, ref)
+                    onChange?.()
+                  }}
+                  onRemove={(fileId) => {
+                    removeExpenseFile(e.id, fileId)
+                    onChange?.()
+                  }}
+                />
               </span>
               <span className="flex items-center gap-3 whitespace-nowrap">
                 <span className="font-medium text-gray-900">{formatCurrencyMil(e.amount)}</span>

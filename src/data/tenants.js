@@ -2,6 +2,7 @@ import { getData, setData } from './store.js'
 import { loadSeedUnits } from './seedUnits.js'
 import { getTrackingStart } from './tracking.js'
 import { t, formatLocaleDate, capitalize } from './i18n.js'
+import { withAttachment, withoutAttachment, trashAttachments, trashAttachment } from './attachments.js'
 
 /** Days a month is assumed to have when turning a partial payment into days covered. */
 export const DAYS_PER_MONTH = 30
@@ -321,6 +322,7 @@ export function addUnit(fields) {
  * @param {string} id
  */
 export function deleteUnit(id) {
+  for (const tenancy of readTenancies()[id] ?? []) trashAttachments(tenancy.contractFiles)
   const data = readUnitEdits()
   writeUnitEdits({ added: data.added.filter((u) => u.id !== id), seeded: data.seeded })
 
@@ -425,6 +427,44 @@ export function setTargetMoveIn(id, date) {
   patchUnit(id, { targetMoveIn: date })
 }
 
+/** Index of the tenancy a unit's row shows: today's tenant, else the most recent past one, else the last. */
+function shownTenancyIndex(list) {
+  const today = getTodayIso()
+  const current = list.findIndex((tn) => occupiesOn(tn, today))
+  if (current >= 0) return current
+  const past = list.map((tn, i) => (tn.moveOut && tn.moveOut <= today ? i : -1)).filter((i) => i >= 0)
+  return past.length ? past[past.length - 1] : list.length - 1
+}
+
+/**
+ * Adds a contract file reference (a scan or photo already uploaded to Drive) to the tenancy shown for a
+ * unit. The reference stays with that tenancy, so it follows the tenant, not the apartment.
+ *
+ * @param {string} id - unit id
+ * @param {{ id: string, name: string, mimeType: string, uploadedAt: string }} ref
+ */
+export function addContractFile(id, ref) {
+  const { list } = loadTenancies(id)
+  const idx = shownTenancyIndex(list)
+  list[idx] = { ...list[idx], contractFiles: withAttachment(list[idx].contractFiles, ref) }
+  saveTenancies(id, list)
+}
+
+/**
+ * Removes a contract file reference from a unit's tenancy and moves the Drive file to the trash.
+ *
+ * @param {string} id - unit id
+ * @param {string} fileId - Drive file id
+ */
+export function removeContractFile(id, fileId) {
+  const { list } = loadTenancies(id)
+  const idx = list.findIndex((tn) => (tn.contractFiles ?? []).some((f) => f.id === fileId))
+  if (idx < 0) return
+  list[idx] = { ...list[idx], contractFiles: withoutAttachment(list[idx].contractFiles, fileId) }
+  saveTenancies(id, list)
+  trashAttachment(fileId)
+}
+
 /** Reopens the latest tenancy (undoes its move-out). */
 export function undoMoveOut(id) {
   const { list, last } = loadTenancies(id)
@@ -436,7 +476,7 @@ export function undoMoveOut(id) {
 export function cancelMoveIn(id) {
   const { list, last } = loadTenancies(id)
   if (list.length > 1 && last.moveIn > getTodayIso()) {
-    list.pop()
+    trashAttachments(list.pop().contractFiles)
     saveTenancies(id, list)
   }
 }

@@ -13,8 +13,11 @@ import {
   moveInUnit,
   undoMoveOut,
   cancelMoveIn,
+  addContractFile,
+  removeContractFile,
 } from '../../data/tenants.js'
 import { formatCurrency } from '../../data/currency.js'
+import AttachmentList from '../common/AttachmentList.jsx'
 import { t, getLanguage } from '../../data/i18n.js'
 
 const EMPTY_FORM = {
@@ -341,6 +344,23 @@ export default function ManageUnits({ onChange }) {
                         {renderNote(unit)}
                         {!unit.vacant && unit.cedula && (
                           <p className="text-xs text-gray-500 mt-0.5">{t('Cédula')} {unit.cedula}</p>
+                        )}
+                        {!unit.vacant && (
+                          <div className="mt-1 font-normal">
+                            <AttachmentList
+                              files={unit.contractFiles}
+                              kind="contracts"
+                              label={t('Attach contract')}
+                              onAdd={(ref) => {
+                                addContractFile(unit.id, ref)
+                                commit()
+                              }}
+                              onRemove={(fileId) => {
+                                removeContractFile(unit.id, fileId)
+                                commit()
+                              }}
+                            />
+                          </div>
                         )}
                       </td>
                       <td className="px-3 py-2 text-gray-700">{unit.vacant ? '' : unit.phone}</td>

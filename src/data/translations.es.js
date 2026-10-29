@@ -244,4 +244,13 @@ export default {
     'El archivo de datos compartido ya no se puede abrir (se eliminó o ya no está compartido contigo). Usa Desconectar y vuelve a conectar.',
   "Couldn't load Google sign-in.": 'No se pudo cargar el inicio de sesión de Google.',
   "Couldn't load the Google file picker.": 'No se pudo cargar el selector de archivos de Google.',
+  Remove: 'Quitar',
+  'Attach contract': 'Adjuntar contrato',
+  'Attach receipt': 'Adjuntar recibo',
+  'Uploading…': 'Subiendo…',
+  'Connect Google Drive to attach or open files.': 'Conecta Google Drive para adjuntar o abrir archivos.',
+  'Could not reach Google Drive. Try again.': 'No se pudo conectar con Google Drive. Inténtalo de nuevo.',
+  'Choose a file first.': 'Primero elige un archivo.',
+  'Only photos and PDF files can be attached.': 'Solo se pueden adjuntar fotos y archivos PDF.',
+  'That file is too large (10 MB maximum).': 'Ese archivo es demasiado grande (máximo 10 MB).',
 }

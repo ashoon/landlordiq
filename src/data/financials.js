@@ -2,6 +2,7 @@ import { getSummaryStats, getUnits } from './tenants.js'
 import { getData, setData } from './store.js'
 import { getTrackingStart } from './tracking.js'
 import { t, formatLocaleDate, capitalize } from './i18n.js'
+import { withAttachment, withoutAttachment, trashAttachments, trashAttachment } from './attachments.js'
 
 /** Maintenance categories offered when logging an expense (the pie chart's slices). */
 export const EXPENSE_CATEGORIES = ['General Repairs', 'Plumbing', 'Electrical', 'Other']
@@ -15,7 +16,7 @@ function readExpenses() {
  * to a unit (`unitId`, plus the `address` it had when logged).
  *
  * @param {string} monthKey - "YYYY-MM"
- * @returns {Array<{ id: string, month: string, category: string, amount: number, note: string, unitId?: string, address?: string }>}
+ * @returns {Array<{ id: string, month: string, category: string, amount: number, note: string, unitId?: string, address?: string, attachments?: Array<object> }>}
  */
 export function getExpenses(monthKey) {
   // Entries in categories that no longer exist (e.g. HVAC) are ignored
@@ -118,7 +119,50 @@ export function getMaintenanceByAddress(monthKey) {
  * @param {string} id
  */
 export function deleteExpense(id) {
+  trashAttachments(readExpenses().find((e) => e.id === id)?.attachments)
   setData('expenses', readExpenses().filter((e) => e.id !== id))
+}
+
+/**
+ * Attaches a receipt (a file already uploaded to Drive) to a logged maintenance expense.
+ *
+ * @param {string} id - expense id
+ * @param {{ id: string, name: string, mimeType: string, uploadedAt: string }} ref
+ */
+export function addExpenseFile(id, ref) {
+  setData('expenses', readExpenses().map((e) => (e.id === id ? { ...e, attachments: withAttachment(e.attachments, ref) } : e)))
+}
+
+/**
+ * Removes a receipt from a maintenance expense and moves the Drive file to the trash.
+ *
+ * @param {string} id - expense id
+ * @param {string} fileId - Drive file id
+ */
+export function removeExpenseFile(id, fileId) {
+  setData('expenses', readExpenses().map((e) => (e.id === id ? { ...e, attachments: withoutAttachment(e.attachments, fileId) } : e)))
+  trashAttachment(fileId)
+}
+
+/**
+ * Attaches a receipt (a file already uploaded to Drive) to an annual tax payment.
+ *
+ * @param {string} id - tax payment id
+ * @param {{ id: string, name: string, mimeType: string, uploadedAt: string }} ref
+ */
+export function addTaxFile(id, ref) {
+  setData('taxes', readTaxes().map((x) => (x.id === id ? { ...x, attachments: withAttachment(x.attachments, ref) } : x)))
+}
+
+/**
+ * Removes a receipt from a tax payment and moves the Drive file to the trash.
+ *
+ * @param {string} id - tax payment id
+ * @param {string} fileId - Drive file id
+ */
+export function removeTaxFile(id, fileId) {
+  setData('taxes', readTaxes().map((x) => (x.id === id ? { ...x, attachments: withoutAttachment(x.attachments, fileId) } : x)))
+  trashAttachment(fileId)
 }
 
 /** Logged maintenance expenses for a month, totalled by category. */
@@ -187,6 +231,7 @@ export function addTaxPayment(fields) {
  * @param {string} id
  */
 export function deleteTaxPayment(id) {
+  trashAttachments(readTaxes().find((x) => x.id === id)?.attachments)
   setData('taxes', readTaxes().filter((t) => t.id !== id))
 }
 
