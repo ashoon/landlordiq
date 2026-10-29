@@ -2,6 +2,9 @@ import { getData, setData } from './store.js'
 import { loadSeedUnits } from './seedUnits.js'
 import { getTrackingStart } from './tracking.js'
 
+/** Days a month is assumed to have when turning a partial payment into days covered. */
+export const DAYS_PER_MONTH = 30
+
 /** Sort order for the unit grid: overdue, due soon, upcoming, paid, then vacant. */
 const STATUS_ORDER = { overdue: 0, 'due-soon': 1, upcoming: 2, paid: 3, vacant: 4 }
 
@@ -446,7 +449,39 @@ function getDueDate(unit, monthKey) {
   return toIso(new Date(y, m - 1, Math.min(unit.dueDay, lastDay)))
 }
 
-/** Reads a stored override { paid, paidDate, dueDate? }: legacy boolean values have no paid date. */
+/**
+ * Days of the month a payment covers, assuming a DAYS_PER_MONTH-day month (rounded down, so a tenant is
+ * never credited with more than they paid): 250,000 of a 500,000 rent covers 15 days.
+ *
+ * @param {number} amountPaid
+ * @param {number} rentAmount
+ * @returns {number}
+ */
+export function daysCoveredBy(amountPaid, rentAmount) {
+  if (!rentAmount || !(amountPaid > 0)) return 0
+  return Math.min(DAYS_PER_MONTH, Math.floor((amountPaid * DAYS_PER_MONTH) / rentAmount))
+}
+
+/**
+ * Previews a part payment before it is saved.
+ *
+ * @param {number} rentAmount - the month's rent
+ * @param {number} alreadyPaid - amount already received for the month
+ * @param {number} amount - the new payment (whole pesos)
+ * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null} null when `amount` isn't a positive number
+ */
+export function describePayment(rentAmount, alreadyPaid, amount) {
+  if (!(amount > 0)) return null
+  const totalPaid = Math.min(rentAmount, (alreadyPaid ?? 0) + amount)
+  return {
+    totalPaid,
+    balance: rentAmount - totalPaid,
+    days: daysCoveredBy(totalPaid, rentAmount),
+    complete: totalPaid >= rentAmount,
+  }
+}
+
+/** Reads a stored override { paid, paidDate, dueDate?, amountPaid? }: legacy boolean values have no paid date. */
 function normalizeOverride(value) {
   if (value === undefined) return null
   if (typeof value === 'boolean') {
@@ -525,8 +560,18 @@ export function getAllTenants(monthKey = getMonthKey()) {
 
       const paid = override?.paid ?? false
       const paidDate = paid ? override.paidDate : null
+      // A partial payment keeps the unit unpaid (status follows the due date) but counts toward collected
+      const amountPaid = paid ? tenant.rentAmount : Math.min(override?.amountPaid ?? 0, tenant.rentAmount)
 
-      const enriched = { ...tenant, dueDate, paidCurrentMonth: paid, paidDate }
+      const enriched = {
+        ...tenant,
+        dueDate,
+        paidCurrentMonth: paid,
+        paidDate,
+        amountPaid,
+        balance: tenant.rentAmount - amountPaid,
+        daysCovered: daysCoveredBy(amountPaid, tenant.rentAmount),
+      }
       return { ...enriched, status: getStatusForTenant(enriched) }
     })
     .sort(compareTenants)
@@ -551,6 +596,8 @@ export function getTenantsByStatus(status, monthKey) {
  * @param {string} [monthKey]
  * Vacant units count toward `total` but not `totalExpected`; their rent is `vacancyLoss`.
  *
+ * Partial payments count as collected; the unpaid balance stays in the unit's status bucket.
+ *
  * @returns {{ total: number, vacant: number, vacancyLoss: number, paid: number, dueSoon: number, upcoming: number, overdue: number,
  *             totalExpected: number, totalCollected: number,
  *             totalDueSoon: number, totalUpcoming: number, totalOverdue: number }}
@@ -567,18 +614,19 @@ export function getSummaryStats(monthKey) {
         return acc
       }
       acc.totalExpected += t.rentAmount
+      // Part payments count as collected; only the unpaid balance stays in the status bucket
+      acc.totalCollected += t.amountPaid
       if (t.status === 'paid') {
         acc.paid += 1
-        acc.totalCollected += t.rentAmount
       } else if (t.status === 'due-soon') {
         acc.dueSoon += 1
-        acc.totalDueSoon += t.rentAmount
+        acc.totalDueSoon += t.balance
       } else if (t.status === 'upcoming') {
         acc.upcoming += 1
-        acc.totalUpcoming += t.rentAmount
+        acc.totalUpcoming += t.balance
       } else if (t.status === 'overdue') {
         acc.overdue += 1
-        acc.totalOverdue += t.rentAmount
+        acc.totalOverdue += t.balance
       }
       return acc
     },
@@ -613,8 +661,9 @@ function readPayment(overrides, id, monthKey) {
 
 /**
  * Persists a paid/unpaid override for a tenant in a given month.
- * Marking paid records today's date as the date paid (editable with setPaidDate);
- * marking unpaid clears it. A due date changed for the month is kept.
+ * Marking paid records today's date as the date paid (editable with setPaidDate) and settles the
+ * month in full; marking unpaid clears the date and any part payment. A due date changed for the
+ * month is kept.
  *
  * @param {string} id - Tenant ID (e.g. "T01")
  * @param {boolean} paid
@@ -622,9 +671,47 @@ function readPayment(overrides, id, monthKey) {
  */
 export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
   const overrides = getData('payments')
-  const current = readPayment(overrides, id, monthKey)
+  const { amountPaid: _part, ...current } = readPayment(overrides, id, monthKey) ?? {}
   overrides[paymentKey(id, monthKey)] = { ...current, paid, paidDate: paid ? toIso(new Date()) : null }
   setData('payments', overrides)
+}
+
+/**
+ * Validates a part payment typed by the user.
+ *
+ * @param {number} amount - whole pesos (NaN when empty)
+ * @returns {string | null} error message, or null when valid
+ */
+export function validatePartPayment(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) return 'Enter the amount received.'
+  return null
+}
+
+/**
+ * Records money received towards a month's rent without necessarily paying it in full. Amounts add up
+ * over several payments. When the total reaches the rent the month is marked paid (today's date);
+ * otherwise the unit stays unpaid with `amountPaid` / `balance` / `daysCovered` filled in.
+ *
+ * @param {string} id - Tenant ID (e.g. "T01")
+ * @param {number} amount - whole pesos received now
+ * @param {string} [monthKey] - defaults to the current month
+ * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null} the result, or null when nothing was recorded
+ */
+export function recordPartialPayment(id, amount, monthKey = getMonthKey()) {
+  if (validatePartPayment(amount)) return null
+  const tenant = getAllTenants(monthKey).find((t) => t.id === id)
+  if (!tenant || tenant.status === 'vacant') return null
+
+  const result = describePayment(tenant.rentAmount, tenant.amountPaid, amount)
+  if (result.complete) {
+    setPaymentStatus(id, true, monthKey)
+    return result
+  }
+  const overrides = getData('payments')
+  const current = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
+  overrides[paymentKey(id, monthKey)] = { ...current, paid: false, paidDate: null, amountPaid: result.totalPaid }
+  setData('payments', overrides)
+  return result
 }
 
 /**

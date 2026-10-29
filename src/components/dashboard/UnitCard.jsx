@@ -1,5 +1,6 @@
-import { getDaysRelative, formatDueDate, getTodayIso } from '../../data/tenants.js'
-import { formatCurrency } from '../../data/currency.js'
+import { useState } from 'react'
+import { getDaysRelative, formatDueDate, getTodayIso, describePayment, DAYS_PER_MONTH } from '../../data/tenants.js'
+import { formatCurrency, milToAmount } from '../../data/currency.js'
 import EditableDate from './EditableDate.jsx'
 
 /**
@@ -8,15 +9,24 @@ import EditableDate from './EditableDate.jsx'
  * (vacant since, scheduled move-in, rent lost) when nobody lives in the unit.
  * The due date (this month only) and, once paid, the date paid are shown as plain text; clicking
  * one opens a date field for it (see EditableDate).
+ * "Mark as Paid" opens a small panel: pay the full rent, or record a part payment (entered in COP mil),
+ * which shows how many days of the month it covers (see DAYS_PER_MONTH) and the balance still owed.
  *
  * @param {{
  *   unit: Object,
  *   onTogglePaid: (id: string, paid: boolean) => void,
+ *   onRecordPayment: (id: string, amount: number) => void,
  *   onPaidDateChange: (id: string, date: string) => void,
  *   onDueDateChange: (id: string, date: string) => void
  * }} props
  */
-export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDateChange }) {
+export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDateChange, onDueDateChange }) {
+  const [paying, setPaying] = useState(false)
+  const [amountText, setAmountText] = useState('')
+  // Preview of the part payment being typed (days covered, balance); null until it is a valid amount
+  const preview = paying ? describePayment(unit.rentAmount, unit.amountPaid, milToAmount(amountText)) : null
+  const hasPartPayment = unit.status !== 'vacant' && unit.status !== 'paid' && unit.amountPaid > 0
+
   const statusStyles = {
     paid: 'border-green-500 bg-green-50',
     'due-soon': 'border-amber-400 bg-amber-50',
@@ -93,6 +103,13 @@ export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDa
           <p className="font-semibold text-gray-900 text-xs sm:text-sm">{unit.tenantName}</p>
           {unit.phone && <p className="text-[11px] sm:text-xs text-gray-500">{unit.phone}</p>}
           <p className="text-base sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{formatCurrency(unit.rentAmount)}</p>
+          {hasPartPayment && (
+            <p className="text-xs font-medium text-gray-700 mt-0.5">
+              Received {formatCurrency(unit.amountPaid)} · {unit.daysCovered} of {DAYS_PER_MONTH} days
+              <br />
+              Balance {formatCurrency(unit.balance)}
+            </p>
+          )}
           <div className="mt-0.5">
             <EditableDate
               label="Due"
@@ -121,17 +138,74 @@ export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDa
         </div>
       )}
 
-      {unit.status !== 'vacant' && (
+      {unit.status !== 'vacant' && !paying && (
         <button
-          onClick={() => onTogglePaid(unit.id, !unit.paidCurrentMonth)}
+          onClick={() => (unit.status === 'paid' ? onTogglePaid(unit.id, false) : setPaying(true))}
           className={`mt-auto text-[11px] sm:text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded border transition-colors ${
             unit.status === 'paid'
               ? 'border-green-600 text-green-700 hover:bg-green-100'
               : 'border-gray-400 text-gray-600 hover:bg-white'
           }`}
         >
-          {unit.status === 'paid' ? 'Mark as Unpaid' : 'Mark as Paid'}
+          {unit.status === 'paid' ? 'Mark as Unpaid' : hasPartPayment ? 'Record payment' : 'Mark as Paid'}
         </button>
+      )}
+
+      {paying && (
+        <div className="mt-auto flex flex-col gap-1.5 rounded border border-gray-300 bg-white p-2">
+          <button
+            onClick={() => {
+              setPaying(false)
+              onTogglePaid(unit.id, true)
+            }}
+            className="text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-green-600 bg-green-600 text-white hover:bg-green-700"
+          >
+            {unit.balance < unit.rentAmount ? `Pay balance ${formatCurrency(unit.balance)}` : 'Paid in full'}
+          </button>
+          <label className="text-[11px] sm:text-xs text-gray-600">
+            Or part payment (COP mil)
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="5"
+              value={amountText}
+              onChange={(e) => setAmountText(e.target.value)}
+              placeholder="e.g. 250"
+              aria-label={`Part payment in COP mil, ${unit.tenantName}`}
+              className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          </label>
+          {preview && (
+            <p className="text-[11px] sm:text-xs text-gray-700">
+              {preview.complete
+                ? 'Covers the full rent'
+                : `${preview.days} of ${DAYS_PER_MONTH} days · balance ${formatCurrency(preview.balance)}`}
+            </p>
+          )}
+          <div className="flex gap-1.5">
+            <button
+              disabled={!preview}
+              onClick={() => {
+                onRecordPayment(unit.id, milToAmount(amountText))
+                setPaying(false)
+                setAmountText('')
+              }}
+              className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-400 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setPaying(false)
+                setAmountText('')
+              }}
+              className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

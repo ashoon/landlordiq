@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   getAllTenants,
   setPaymentStatus,
+  recordPartialPayment,
   setPaidDate,
   setDueDate,
   sortByOrder,
@@ -68,6 +69,20 @@ export default function Dashboard({ month, onStatsChange }) {
     onStatsChange?.()
   }
 
+  function handleRecordPayment(id, amount) {
+    const result = recordPartialPayment(id, amount, month)
+    // A full payment behaves like Mark as Paid (first in the paid section); a part payment keeps the tile in place
+    if (result?.complete) {
+      const fresh = getAllTenants(month)
+      const current = pinned ? sortByOrder(fresh, pinned.ids) : fresh
+      setPinned({ month, ids: idsWithFirstInStatus(current, id) })
+    } else {
+      pinCurrentOrder()
+    }
+    setRefreshKey((k) => k + 1)
+    onStatsChange?.()
+  }
+
   // Keeps the order shown now (set once, so several edits in a row don't reshuffle either)
   function pinCurrentOrder() {
     setPinned((p) => (p && p.month === month ? p : { month, ids: allTenants.map((t) => t.id) }))
@@ -118,6 +133,7 @@ export default function Dashboard({ month, onStatsChange }) {
               key={`${unit.id}-${month}-${refreshKey}`}
               unit={unit}
               onTogglePaid={handleTogglePaid}
+              onRecordPayment={handleRecordPayment}
               onPaidDateChange={handlePaidDateChange}
               onDueDateChange={handleDueDateChange}
             />
