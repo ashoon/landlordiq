@@ -1,4 +1,4 @@
-import { getSummaryStats, getUnits } from './tenants.js'
+import { getSummaryStats, getUnits, getEditableUnits } from './tenants.js'
 import { getData, setData } from './store.js'
 import { getTrackingStart } from './tracking.js'
 import { t, formatLocaleDate, capitalize } from './i18n.js'
@@ -39,16 +39,13 @@ export function validateExpense(fields) {
 }
 
 /**
- * Units an expense can be linked to, as select options sorted by address. An address shared by several
- * tenants gets the tenant name added so the options can be told apart.
+ * Units an expense can be linked to, as select options sorted by address. Every label shows the
+ * current tenant after the address ("Vacant" when nobody lives there).
  *
  * @returns {Array<{ id: string, label: string }>}
  */
 export function getExpenseUnitOptions() {
-  const units = getUnits()
-  const counts = new Map()
-  for (const u of units) counts.set(u.address, (counts.get(u.address) ?? 0) + 1)
-  return units.map((u) => ({ id: u.id, label: counts.get(u.address) > 1 ? `${u.address} — ${u.tenantName}` : u.address }))
+  return getEditableUnits().map((u) => ({ id: u.id, label: `${u.address} — ${u.vacant ? t('Vacant') : u.tenantName}` }))
 }
 
 /** Address an expense belongs to: the unit's current address, else the one saved with the expense, else null. */

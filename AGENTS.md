@@ -201,7 +201,7 @@ Categories (in this order, General Repairs first/default): General Repairs, Plum
 entries in those categories are ignored). There are no sample costs; management fee and insurance no longer exist.
 Each entry may also be linked to a unit: `unitId` plus the `address` it had when logged (both omitted when not linked). The
 address shown/grouped is the unit's *current* address, falling back to the saved one if the unit was deleted
-(`getExpenseAddress`). `getExpenseUnitOptions()` feeds the form's select (shared addresses get the tenant name added).
+(`getExpenseAddress`). `getExpenseUnitOptions()` feeds the form's select (every option shows the address and the current tenant, or "Vacant").
 `getMaintenanceByAddress(month)` totals the selected month and its calendar year per address, biggest yearly total first, with
 unlinked expenses in one last row (`address: null`); `analytics/MaintenanceByAddress.jsx` shows it. Linking never changes the
 pie chart or KPIs (those still total by category and month). Existing expenses stay unlinked.
