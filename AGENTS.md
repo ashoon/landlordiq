@@ -55,6 +55,7 @@ landlordiq/
 │   │   ├── tenants.js                  # Unit / tenancy / payment data-access helpers (via store.js)
 │   │   ├── financials.js               # Expenses, taxes, up-to-6-month financials (via store.js)
 │   │   ├── tracking.js                 # Tracking start month (settings); hides earlier months, deletes nothing
+│   │   ├── paymentHistory.js           # Per-tenant month-by-month payment history (computed, nothing stored)
 │   │   ├── insights.js                 # Tenant insights: who pays late / in parts (computed, nothing stored)
 │   │   ├── currency.js                 # COP formatting + "mil" helpers (number format follows the language)
 │   │   ├── i18n.js                     # English/Spanish: t(), getLanguage/setLanguage, locale date helpers
@@ -82,6 +83,7 @@ landlordiq/
 │           ├── MaintenanceExpenses.jsx # Form + list to log maintenance expenses for the selected month (optional unit)
 │           ├── MaintenanceByAddress.jsx # Table: maintenance spend per address (selected month + calendar year)
 │           ├── TaxPayments.jsx         # Annual property tax: record/list/delete payments
+│           ├── PaymentHistory.jsx      # Pick a tenant: every month owed, payments received, days early/late
 │           └── TenantInsights.jsx      # Table: flagged tenants (button shows all); flags under the tenant name
 └── landlordiq-demo/
     └── plans/
@@ -296,6 +298,16 @@ their own record. Rules (constants `GRACE_DAYS` 7, `FLAG_THRESHOLD` 2):
 Shown in `analytics/TenantInsights.jsx` (table for the selected month; **only flagged tenants are listed** until the "Show all tenants" button is pressed, `isFlagged()` in `insights.js`; `*` marks fewer than 6 judged months) and as a
 violet **Watch** tag beside the status badge in `UnitCard.jsx` (reasons in its hover/aria text; never on vacant tiles).
 `Dashboard.jsx` joins the map to the tiles. The badges use violet/sky so they are not mistaken for a payment status colour.
+
+### Payment history by tenant
+
+`src/data/paymentHistory.js` + `analytics/PaymentHistory.jsx` (bottom of the Analytics tab). Nothing new is stored: it reads every
+tracked month through `getAllTenants()` and keeps the months where the chosen tenant owed rent. `getHistoryTenants()` lists
+everyone who owed rent in a tracked month (current tenants first, former tenants marked "moved out"); a tenant is keyed
+`payKey ?? id`, so a replacement tenant has their own history. `getPaymentHistory(key)` returns rows newest first (due date,
+rent, paid, balance, dated payments, `daysFromDue` = paid date − due date once paid in full) and totals (months, total paid,
+past-due balance, months paid after the due date). Next month is listed only if something was already paid for it. History
+cannot reach before the tracking start (older data is hidden, not deleted); a month nobody marked paid shows as overdue.
 
 ### Languages (English / Spanish)
 

@@ -7,6 +7,7 @@ import MaintenanceExpenses from './MaintenanceExpenses.jsx'
 import MaintenanceByAddress from './MaintenanceByAddress.jsx'
 import TaxPayments from './TaxPayments.jsx'
 import TenantInsights from './TenantInsights.jsx'
+import PaymentHistory from './PaymentHistory.jsx'
 
 /**
  * Analytics — orchestrates all financial analytics sections, including the maintenance
@@ -31,6 +32,7 @@ export default function Analytics({ refreshKey, month }) {
       <MaintenanceByAddress month={month} />
       <TaxPayments onChange={() => setExpensesVersion((v) => v + 1)} />
       <TenantInsights month={month} />
+      <PaymentHistory />
     </div>
   )
 }
