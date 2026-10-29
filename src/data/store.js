@@ -148,14 +148,23 @@ export function saveLocalBackup() {
 }
 
 const META_KEY = 'landlordiq_drive_meta'
-const META_DEFAULTS = { connected: false, fileId: null, version: null, dirty: false, lastSynced: null, shared: false }
+const META_DEFAULTS = {
+  connected: false,
+  fileId: null,
+  version: null,
+  dirty: false,
+  lastSynced: null,
+  shared: false,
+  loginHint: null,
+}
 let metaCache = null
 
 /**
  * Google Drive sync bookkeeping. Kept apart from the app data: it is never uploaded.
- * `dirty` means there are local changes Drive hasn't received yet.
+ * `dirty` means there are local changes Drive hasn't received yet. `loginHint` is the Google
+ * account's email, passed to Google on sign-in so it can skip the account picker.
  *
- * @returns {{ connected: boolean, fileId: string|null, version: string|null, dirty: boolean, lastSynced: string|null, shared: boolean }}
+ * @returns {{ connected: boolean, fileId: string|null, version: string|null, dirty: boolean, lastSynced: string|null, shared: boolean, loginHint: string|null }}
  */
 export function getMeta() {
   if (!metaCache) {

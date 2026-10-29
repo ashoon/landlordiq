@@ -37,7 +37,13 @@ turn on Google Drive sync.
 - Only if this device has no record of the last synced data (for example after clearing browser data
   while having unsynced edits) does a banner ask whether to keep the Drive copy or this device's copy.
 - Google sign-in tokens last about an hour. The app renews them quietly; if Google needs a click you'll
-  see a **Reconnect** button. Your edits are never lost while signed out.
+  see a **Reconnect** button, and your next tap anywhere in the app opens Google sign-in for you. The
+  app also remembers your Google email so Google can skip the account picker. Your edits are never lost
+  while signed out.
+- If you must reconnect on every open, your browser is blocking Google's quiet renewal (third-party
+  cookie or tracking protection) or you are not signed in to Google in that browser. Allow cookies for
+  Google / turn off tracking protection for the site, and stay signed in to Google. If the OAuth consent
+  screen is in **Testing**, Google also asks again about every 7 days; publish it ("In production") to avoid that.
 - A teammate with **their own Google account** can't see your file automatically (see the limits of the
   `drive.file` permission). Share it with them and have them use **Open shared file**; see
   [Sharing with teammates](#sharing-with-teammates).

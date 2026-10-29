@@ -146,7 +146,7 @@ Helpers: `getEditableUnits`, `validateUnit`, `updateUnit`, `addUnit`, `deleteUni
   `POLL_INTERVAL_MS` (30 s) while the tab is visible and online, and also on tab focus / `online`; data is replaced only
   when the Drive checksum changed. Status states: `disabled | disconnected | connecting | synced | saving | unsynced |
   needs-auth | offline | conflict | error` (`getStatus`, `subscribeStatus`). Sync metadata (`landlordiq_drive_meta`:
-  connected, fileId, version, dirty, lastSynced, shared) is never uploaded. Without `VITE_GOOGLE_CLIENT_ID` the app is
+  connected, fileId, version, dirty, lastSynced, shared, loginHint = Google email passed as `login_hint`) is never uploaded. After a refused silent sign-in (`needs-auth`) the next click anywhere runs `connect()` once (`armNextTapReconnect`). Without `VITE_GOOGLE_CLIENT_ID` the app is
   local-only.
 - **File picker (shared files):** `openSharedFile()` in `driveSync.js` opens Google's Picker (script `apis.google.com/js/api.js`,
   needs `VITE_GOOGLE_API_KEY`; `isPickerConfigured()` gates the UI buttons) so an account that was *shared* the data file

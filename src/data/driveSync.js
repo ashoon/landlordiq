@@ -83,7 +83,24 @@ const statusListeners = new Set()
 
 function setStatus(state, message = '') {
   status = { state, message, lastSynced: getMeta().lastSynced }
+  if (state === 'synced') autoReconnectTried = false
+  if (state === 'needs-auth') armNextTapReconnect()
   statusListeners.forEach((listener) => listener())
+}
+
+/**
+ * Silent sign-in is often refused (third-party cookie blocking, not signed in to Google). Google's
+ * popup only opens from a user click, so after a refusal the next click anywhere in the app
+ * starts the sign-in once. Runs after the clicked control's own handler, so Disconnect etc. win.
+ */
+function armNextTapReconnect() {
+  if (autoReconnectTried || typeof document === 'undefined') return
+  autoReconnectTried = true
+  const onClick = () => {
+    document.removeEventListener('click', onClick)
+    if (status.state === 'needs-auth') connect()
+  }
+  document.addEventListener('click', onClick)
 }
 
 /**
@@ -128,6 +145,8 @@ export function isPickerConfigured() {
 
 let chain = Promise.resolve()
 let token = null // { value, expiresAt }
+let connectInFlight = null // the running connect(), so two clicks don't open two sign-in popups
+let autoReconnectTried = false // true once the next-tap sign-in has been tried for this sign-out
 let pendingConflict = null // { file, remote }
 let changeCounter = 0
 let saveTimer = null
@@ -152,7 +171,7 @@ function handleError(error) {
     setStatus('error', `${error.message} A content blocker or privacy setting may be blocking Google; try disabling it for this site.`)
   } else if (error instanceof AuthError || (error instanceof DriveError && error.status === 401)) {
     token = null
-    setStatus('needs-auth', 'Sign in again to keep syncing with Google Drive.')
+    setStatus('needs-auth', 'Sign in again to keep syncing with Google Drive. Your next tap opens Google sign-in.')
   } else if (error instanceof DriveError && error.status === 403) {
     setStatus('error', `${error.message}. Check the Google Cloud setup (Drive API enabled, test user added).`)
   } else if (error instanceof NetworkError || isOffline()) {
@@ -248,12 +267,15 @@ function requestToken(prompt) {
       const client = globalThis.window.google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPE,
+        // Lets Google pick the right account without asking (undefined when not known yet)
+        login_hint: getMeta().loginHint || undefined,
         callback: done((response) => {
           if (response.error) return reject(new AuthError(response.error))
           token = {
             value: response.access_token,
             expiresAt: Date.now() + Number(response.expires_in || 3600) * 1000,
           }
+          rememberLoginHint()
           resolve()
         }),
         error_callback: done((error) => reject(new AuthError(error?.type || 'popup_closed'))),
@@ -261,6 +283,23 @@ function requestToken(prompt) {
       client.requestAccessToken({ prompt })
     })
   return gisReady() ? start() : loadGis().then(start)
+}
+
+/**
+ * Saves the signed-in account's email (best effort) so later sign-ins can name the account.
+ * Failures are ignored: without a hint Google just asks which account.
+ */
+function rememberLoginHint() {
+  if (getMeta().loginHint) return
+  fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)', {
+    headers: { Authorization: `Bearer ${token.value}` },
+  })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((data) => {
+      const email = data?.user?.emailAddress
+      if (email) setMeta({ loginHint: email })
+    })
+    .catch(() => {})
 }
 
 async function ensureToken() {
@@ -623,10 +662,11 @@ export function initDriveSync() {
  */
 export function connect() {
   if (!CLIENT_ID) return Promise.resolve()
+  if (connectInFlight) return connectInFlight
   setStatus('connecting', 'Waiting for Google sign-in…')
   const auth = requestToken('') // started synchronously, inside the click
   auth.catch(() => {})
-  return enqueue(async () => {
+  connectInFlight = enqueue(async () => {
     try {
       await auth
       await reconcile()
@@ -635,7 +675,10 @@ export function connect() {
       if (error instanceof AuthError && !getMeta().connected) setStatus('disconnected')
       else handleError(error)
     }
+  }).finally(() => {
+    connectInFlight = null
   })
+  return connectInFlight
 }
 
 /**
@@ -740,7 +783,7 @@ export function disconnect() {
     token = null
     pendingConflict = null
     setBase(null)
-    setMeta({ connected: false, fileId: null, version: null, dirty: false, shared: false })
+    setMeta({ connected: false, fileId: null, version: null, dirty: false, shared: false, loginHint: null })
     setStatus('disconnected')
   })
 }
