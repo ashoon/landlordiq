@@ -11,6 +11,7 @@ import {
   flush,
 } from '../../data/driveSync.js'
 import { t, getLocale } from '../../data/i18n.js'
+import { btnCls } from '../common/ui.js'
 
 const STATES = {
   disconnected: { label: 'Google Drive: not connected', dot: 'bg-gray-400', text: 'text-gray-600' },
@@ -24,8 +25,6 @@ const STATES = {
   error: { label: 'Drive error', dot: 'bg-red-500', text: 'text-red-500' },
 }
 
-const btnCls =
-  'text-xs font-medium px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50'
 
 /**
  * DriveStatus — header control showing the Google Drive sync state, with Connect /
@@ -46,7 +45,7 @@ export default function DriveStatus() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => connect()}
-          className="text-xs font-medium px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          className="text-xs font-medium px-3 py-2 rounded bg-brand-600 text-white hover:bg-brand-700"
         >
           {status.state === 'needs-auth' ? t('Reconnect Google Drive') : t('Connect Google Drive')}
         </button>
@@ -54,7 +53,7 @@ export default function DriveStatus() {
           <button
             onClick={() => openSharedFile()}
             title={t('Open a landlordiq-data.json file that someone shared with your Google account')}
-            className="text-xs font-medium px-3 py-2 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+            className="text-xs font-medium px-3 py-2 rounded border border-gray-300 bg-surface text-gray-600 hover:bg-gray-50"
           >
             {t('Open shared file')}
           </button>
@@ -73,13 +72,13 @@ export default function DriveStatus() {
         onClick={() => setMenuOpen((o) => !o)}
         aria-expanded={menuOpen}
         title={describeStatus(status) || undefined}
-        className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 ${state.text}`}
+        className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded border border-gray-300 bg-surface hover:bg-gray-50 ${state.text}`}
       >
         <span className={`inline-block h-2 w-2 rounded-full ${state.dot}`} />
         {t(state.label)}
       </button>
       {menuOpen && (
-        <div className="absolute right-0 z-10 mt-1 w-56 rounded border border-gray-200 bg-white p-3 shadow-md space-y-2">
+        <div className="absolute right-0 z-10 mt-1 w-56 rounded border border-gray-200 bg-surface p-3 shadow-md space-y-2">
           {lastSynced && <p className="text-xs text-gray-500">{t('Last saved to Drive at')} {lastSynced}</p>}
           <div className="flex gap-2">
             <button

@@ -224,6 +224,35 @@ export function setStoredLanguage(language) {
   }
 }
 
+const THEME_KEY = 'landlordiq_theme'
+
+/**
+ * The colour theme chosen on this device ('light' | 'dark'), or null if none was chosen yet.
+ * A personal preference: kept out of the synced data, like the language.
+ *
+ * @returns {string|null}
+ */
+export function getStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Remembers the colour theme chosen on this device.
+ *
+ * @param {string} theme - 'light' | 'dark'
+ */
+export function setStoredTheme(theme) {
+  try {
+    localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    // Storage blocked: the choice lasts for this session only
+  }
+}
+
 const BASE_KEY = 'landlordiq_drive_base'
 
 /**

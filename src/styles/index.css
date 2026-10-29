@@ -1,3 +1,91 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Colour variables (space-separated RGB so Tailwind can add opacity). Light mode: cool slate neutrals
+   and a deep blue-teal accent. The .dark class (set by src/data/theme.js) swaps them. */
+:root {
+  --surface: 255 255 255;
+
+  --gray-50: 248 250 252;
+  --gray-100: 241 245 249;
+  --gray-200: 226 232 240;
+  --gray-300: 203 213 225;
+  --gray-400: 108 122 144;
+  --gray-500: 85 98 118;
+  --gray-600: 71 85 105;
+  --gray-700: 51 65 85;
+  --gray-800: 30 41 59;
+  --gray-900: 15 23 42;
+
+  --brand-50: 236 247 249;
+  --brand-100: 207 237 240;
+  --brand-400: 45 170 185;
+  --brand-500: 14 140 160;
+  --brand-600: 15 118 138;
+  --brand-700: 14 94 112;
+
+  --green-50: 240 253 244;
+  --green-100: 220 252 231;
+  --green-700: 21 128 61;
+  --green-800: 22 101 52;
+  --amber-50: 255 251 235;
+  --amber-100: 254 243 199;
+  --amber-600: 180 83 9;
+  --amber-800: 146 64 14;
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --red-600: 197 30 30;
+  --red-800: 153 27 27;
+  --violet-100: 237 233 254;
+  --violet-800: 91 33 182;
+  --sky-100: 224 242 254;
+  --sky-800: 7 89 133;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --surface: 22 29 43;
+
+  --gray-50: 30 38 54;
+  --gray-100: 11 15 25;
+  --gray-200: 45 55 72;
+  --gray-300: 61 72 92;
+  --gray-400: 120 132 152;
+  --gray-500: 148 160 178;
+  --gray-600: 170 180 196;
+  --gray-700: 203 210 222;
+  --gray-800: 226 232 240;
+  --gray-900: 241 245 249;
+
+  --brand-50: 16 52 60;
+  --brand-100: 20 70 82;
+  --brand-400: 94 200 214;
+  --brand-500: 56 178 196;
+  --brand-600: 14 122 142;
+  --brand-700: 20 140 162;
+
+  --green-50: 18 48 36;
+  --green-100: 24 70 46;
+  --green-700: 134 239 172;
+  --green-800: 187 247 208;
+  --amber-50: 52 40 18;
+  --amber-100: 77 58 16;
+  --amber-600: 251 191 36;
+  --amber-800: 253 230 138;
+  --red-50: 58 24 28;
+  --red-100: 85 30 36;
+  --red-600: 252 165 165;
+  --red-800: 254 202 202;
+  --violet-100: 49 38 90;
+  --violet-800: 221 214 254;
+  --sky-100: 22 60 84;
+  --sky-800: 186 230 253;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-100 font-sans text-gray-900 antialiased;
+  }
+}

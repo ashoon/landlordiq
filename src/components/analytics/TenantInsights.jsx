@@ -26,8 +26,8 @@ export default function TenantInsights({ month }) {
   const hasShortHistory = insights.some((i) => i.judged < WINDOW_MONTHS)
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">{t('Tenant insights')}</h3>
+    <div className="bg-surface rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
+      <h3 className="text-base font-semibold text-gray-900">{t('Tenant insights')}</h3>
       <p className="text-xs text-gray-500 mb-4">
         {t(
           'Late = the full rent arrived more than {days} days after the due date, or has not arrived yet. Looks at the last {months} months; a tenant is flagged at {count} or more.',

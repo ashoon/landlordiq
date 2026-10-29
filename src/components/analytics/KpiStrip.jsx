@@ -29,10 +29,10 @@ export default function KpiStrip({ month }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {kpis.map((kpi) => (
-        <div key={kpi.label} className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">{kpi.label}</p>
+        <div key={kpi.label} className="bg-surface rounded-xl border border-gray-200 border-t-4 border-t-brand-500 shadow-sm p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{kpi.label}</p>
           <p className="h-4 text-xs font-medium text-gray-400 mt-1">{kpi.money ? t('COP mil') : ''}</p>
-          <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
+          <p className="text-3xl font-bold tracking-tight text-gray-900">{kpi.value}</p>
           {kpi.note && <p className="text-xs text-gray-500 mt-0.5">{kpi.note}</p>}
         </div>
       ))}

@@ -49,11 +49,11 @@ export default function UnitCard({
   const hasPartPayment = unit.status !== 'vacant' && unit.status !== 'paid' && unit.amountPaid > 0
 
   const statusStyles = {
-    paid: 'border-green-500 bg-green-50',
-    'due-soon': 'border-amber-400 bg-amber-50',
-    upcoming: 'border-gray-300 bg-gray-50',
-    overdue: 'border-red-500 bg-red-50',
-    vacant: 'border-dashed border-gray-300 bg-white',
+    paid: 'border border-l-4 border-green-500 bg-green-50',
+    'due-soon': 'border border-l-4 border-amber-400 bg-amber-50',
+    upcoming: 'border border-l-4 border-gray-300 bg-gray-50',
+    overdue: 'border border-l-4 border-red-500 bg-red-50',
+    vacant: 'border border-dashed border-gray-300 bg-surface',
   }
 
   const badgeStyles = {
@@ -115,9 +115,9 @@ export default function UnitCard({
   }
 
   return (
-    <div className={`rounded-lg border-2 p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-3 ${statusStyles[unit.status]}`}>
+    <div className={`rounded-xl p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 shadow-sm ${statusStyles[unit.status]}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5">
-        <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
           {unit.address}
         </span>
         <span className="flex items-center gap-1">
@@ -125,12 +125,12 @@ export default function UnitCard({
             <span
               title={watchText}
               aria-label={watchText}
-              className="text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-violet-100 text-violet-800"
+              className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800"
             >
               {t('Watch')}
             </span>
           )}
-          <span className={`text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full ${badgeStyles[unit.status]}`}>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeStyles[unit.status]}`}>
             {badgeLabels[unit.status]}
           </span>
         </span>
@@ -138,15 +138,15 @@ export default function UnitCard({
 
       {unit.status === 'vacant' ? (
         <div>
-          <p className="font-semibold text-gray-500 text-xs sm:text-sm">{getVacancyLabel()}</p>
+          <p className="font-semibold text-gray-600 text-sm">{getVacancyLabel()}</p>
           {unit.moveInDate && (
-            <p className="text-xs font-medium mt-0.5 sm:mt-1 text-gray-700">
+            <p className="text-xs font-medium mt-1 text-gray-700">
               {t('Move-in')} {formatDueDate(unit.moveInDate)}
               {unit.moveInDate <= getTodayIso() ? '' : ` ${t('(scheduled)')}`}
             </p>
           )}
           {!unit.moveInDate && (
-            <div className="mt-0.5 sm:mt-1">
+            <div className="mt-1">
               <EditableDate
                 label={t('Target move-in')}
                 value={unit.targetMoveIn ?? ''}
@@ -158,13 +158,13 @@ export default function UnitCard({
             </div>
           )}
           <p className="text-xs text-gray-500 mt-1 sm:mt-2">{t('Rent lost')}</p>
-          <p className="text-base sm:text-xl font-bold text-gray-500">{formatCurrency(unit.rentAmount)}</p>
+          <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-500">{formatCurrency(unit.rentAmount)}</p>
         </div>
       ) : (
         <div>
-          <p className="font-semibold text-gray-900 text-xs sm:text-sm">{unit.tenantName}</p>
-          {unit.phone && <p className="text-[11px] sm:text-xs text-gray-500">{unit.phone}</p>}
-          <p className="text-base sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{formatCurrency(unit.rentAmount)}</p>
+          <p className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">{unit.tenantName}</p>
+          {unit.phone && <p className="text-xs text-gray-500">{unit.phone}</p>}
+          <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900 mt-1">{formatCurrency(unit.rentAmount)}</p>
           {hasPartPayment && (
             <p className="text-xs font-medium text-gray-700 mt-0.5">
               {t('Received')} {formatCurrency(unit.amountPaid)} · {t('{days} of {total} days', { days: unit.daysCovered, total: DAYS_PER_MONTH })}
@@ -185,7 +185,7 @@ export default function UnitCard({
             </div>
           )}
           {unit.paymentLog.length > 0 && (
-            <ul className="mt-0.5 text-[11px] sm:text-xs text-gray-500" aria-label={`${t('Payments received')}, ${unit.tenantName}`}>
+            <ul className="mt-0.5 text-xs text-gray-500" aria-label={`${t('Payments received')}, ${unit.tenantName}`}>
               {unit.paymentLog.map((p) => (
                 <li key={p.id}>
                   {p.date ? formatDueDate(p.date) : t('Earlier')} · {formatCurrency(p.amount)}
@@ -204,7 +204,7 @@ export default function UnitCard({
             />
           </div>
           {unit.status === 'paid' && unit.paidDate && (
-            <div className="mt-0.5 sm:mt-1">
+            <div className="mt-1">
               <EditableDate
                 label={t('Paid')}
                 value={unit.paidDate}
@@ -216,13 +216,13 @@ export default function UnitCard({
             </div>
           )}
           {daysLabel && (
-            <p className={`text-xs font-medium mt-0.5 sm:mt-1 ${daysLabel.cls}`}>{daysLabel.text}</p>
+            <p className={`text-xs font-medium mt-1 ${daysLabel.cls}`}>{daysLabel.text}</p>
           )}
         </div>
       )}
 
       {(notes.length > 0 || services.length > 0) && (
-        <div className="text-[11px] sm:text-xs text-gray-500 break-words">
+        <div className="text-xs text-gray-500 break-words">
           {notes.map((note) => (
             <p key={note}>{note}</p>
           ))}
@@ -237,10 +237,10 @@ export default function UnitCard({
       {unit.status !== 'vacant' && !paying && (
         <button
           onClick={() => (unit.status === 'paid' ? onTogglePaid(unit.id, false) : setPaying(true))}
-          className={`mt-auto text-[11px] sm:text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded border transition-colors ${
+          className={`mt-auto text-xs font-medium px-3 py-1.5 rounded-md border transition-colors ${
             unit.status === 'paid'
-              ? 'border-green-600 text-green-700 hover:bg-green-100'
-              : 'border-gray-400 text-gray-600 hover:bg-white'
+              ? 'border-green-500 text-green-700 hover:bg-green-100'
+              : 'border-gray-400 text-gray-700 hover:bg-surface'
           }`}
         >
           {unit.status === 'paid' ? t('Mark as Unpaid') : hasPartPayment ? t('Record payment') : t('Mark as Paid')}
@@ -248,7 +248,7 @@ export default function UnitCard({
       )}
 
       {paying && (
-        <div className="mt-auto flex flex-col gap-1.5 rounded border border-gray-300 bg-white p-2">
+        <div className="mt-auto flex flex-col gap-1.5 rounded-md border border-gray-300 bg-surface p-2.5">
           <button
             onClick={() => {
               setPaying(false)
@@ -256,11 +256,11 @@ export default function UnitCard({
               if (unit.paymentLog.length > 0) onRecordPayment(unit.id, unit.balance)
               else onTogglePaid(unit.id, true)
             }}
-            className="text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-green-600 bg-green-600 text-white hover:bg-green-700"
+            className="text-xs font-medium px-2 py-1 rounded-md border border-green-500 bg-green-500 text-white hover:bg-green-600"
           >
             {unit.balance < unit.rentAmount ? `${t('Pay balance')} ${formatCurrency(unit.balance)}` : t('Paid in full')}
           </button>
-          <label className="text-[11px] sm:text-xs text-gray-600">
+          <label className="text-xs text-gray-600">
             {t('Or part payment (COP mil)')}
             <input
               type="number"
@@ -271,25 +271,25 @@ export default function UnitCard({
               onChange={(e) => setAmountText(e.target.value)}
               placeholder={t('e.g. 250')}
               aria-label={`${t('Part payment in COP mil')}, ${unit.tenantName}`}
-              className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </label>
           {preview && (
-            <p className="text-[11px] sm:text-xs text-gray-700">
+            <p className="text-xs text-gray-700">
               {preview.complete
                 ? t('Covers the full rent')
                 : `${t('{days} of {total} days', { days: preview.days, total: DAYS_PER_MONTH })} · ${t('balance')} ${formatCurrency(preview.balance)}`}
             </p>
           )}
           {preview && !preview.complete && (
-            <label className="text-[11px] sm:text-xs text-gray-600">
+            <label className="text-xs text-gray-600">
               {t('Balance expected by (optional)')}
               <input
                 type="date"
                 value={balanceDueText}
                 onChange={(e) => setBalanceDueText(e.target.value)}
                 aria-label={`${t('Balance expected by')}, ${unit.tenantName}`}
-                className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </label>
           )}
@@ -302,7 +302,7 @@ export default function UnitCard({
                 setAmountText('')
                 setBalanceDueText('')
               }}
-              className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-400 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 text-xs font-medium px-2 py-1 rounded border border-gray-400 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {t('Save')}
             </button>
@@ -312,7 +312,7 @@ export default function UnitCard({
                 setAmountText('')
                 setBalanceDueText('')
               }}
-              className="flex-1 text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
+              className="flex-1 text-xs font-medium px-2 py-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
             >
               {t('Cancel')}
             </button>

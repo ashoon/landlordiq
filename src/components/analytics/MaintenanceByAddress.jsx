@@ -18,8 +18,8 @@ export default function MaintenanceByAddress({ month }) {
   const year = month.slice(0, 4)
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">{t('Maintenance by Address')}</h3>
+    <div className="bg-surface rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
+      <h3 className="text-base font-semibold text-gray-900">{t('Maintenance by Address')}</h3>
       <p className="text-xs text-gray-500 mb-4">
         {t('Which address has cost the most in repairs. Link an expense to a unit when you log it.')}
       </p>

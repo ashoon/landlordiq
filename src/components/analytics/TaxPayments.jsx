@@ -11,9 +11,8 @@ import { getTodayIso, formatDueDate } from '../../data/tenants.js'
 import { formatCurrencyMil, milToAmount } from '../../data/currency.js'
 import AttachmentList from '../common/AttachmentList.jsx'
 import { t } from '../../data/i18n.js'
+import { inputCls } from '../common/ui.js'
 
-const inputCls =
-  'w-full px-2 py-1.5 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white'
 
 function emptyForm() {
   return { year: String(new Date().getFullYear()), amount: '', paidDate: getTodayIso(), note: '' }
@@ -54,8 +53,8 @@ export default function TaxPayments({ onChange }) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">{t('Annual Property Tax')}</h3>
+    <div className="bg-surface rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
+      <h3 className="text-base font-semibold text-gray-900">{t('Annual Property Tax')}</h3>
       <p className="text-xs text-gray-500 mb-4">
         {t('Paid once a year. Counted as an expense in the month it was paid.')}
       </p>
@@ -89,7 +88,7 @@ export default function TaxPayments({ onChange }) {
           <p className="text-sm text-red-500">{error}</p>
           <button
             type="submit"
-            className="text-xs font-medium px-4 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700"
+            className="text-xs font-medium px-4 py-1.5 rounded bg-brand-600 text-white hover:bg-brand-700"
           >
             {t('Record Tax Payment')}
           </button>

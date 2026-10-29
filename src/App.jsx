@@ -9,6 +9,7 @@ import { subscribe } from './data/store.js'
 import { initDriveSync } from './data/driveSync.js'
 import { ensureTrackingStart } from './data/tracking.js'
 import { getLanguage, subscribeLanguage } from './data/i18n.js'
+import { getTheme, subscribeTheme } from './data/theme.js'
 
 // Hash routing (#/analytics) so deep links and refreshes work on static hosts such as GitHub Pages
 function getTabFromPath() {
@@ -21,6 +22,8 @@ function getTabFromPath() {
 export default function App() {
   // Re-renders the whole app when the language flag is clicked (texts come from t() in i18n.js)
   useSyncExternalStore(subscribeLanguage, getLanguage)
+  // Redraws the charts, whose colours are read in JavaScript, when dark mode is switched
+  useSyncExternalStore(subscribeTheme, getTheme)
   const [activeTab, setActiveTab] = useState(getTabFromPath)
   // Incremented when a unit toggle occurs so SummaryStrip re-reads from tenants.js
   const [statsKey, setStatsKey] = useState(0)
@@ -64,7 +67,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Header
         activeTab={activeTab}
         onTabChange={handleTabChange}

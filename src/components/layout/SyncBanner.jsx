@@ -19,13 +19,13 @@ export default function SyncBanner() {
         <div className="flex gap-2 ml-auto">
           <button
             onClick={() => resolveConflict('drive')}
-            className="text-xs font-medium px-3 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700"
+            className="text-xs font-medium px-3 py-1.5 rounded bg-brand-600 text-white hover:bg-brand-700"
           >
             {t('Use Drive copy')}
           </button>
           <button
             onClick={() => resolveConflict('mine')}
-            className="text-xs font-medium px-3 py-1.5 rounded border border-gray-400 text-gray-700 bg-white hover:bg-gray-50"
+            className="text-xs font-medium px-3 py-1.5 rounded border border-gray-400 text-gray-700 bg-surface hover:bg-gray-50"
           >
             {t("Keep this device's copy")}
           </button>
@@ -43,7 +43,7 @@ export default function SyncBanner() {
         <p className="text-sm text-red-500">{message} {t('Your changes are safe on this device.')}</p>
         <button
           onClick={() => connect()}
-          className="ml-auto text-xs font-medium px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+          className="ml-auto text-xs font-medium px-3 py-1.5 rounded bg-brand-600 text-white hover:bg-brand-700"
         >
           {t('Reconnect')}
         </button>

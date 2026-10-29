@@ -68,7 +68,7 @@ export default function EditableDate({ label, value, display, onSave, textClassN
           if (e.key === 'Escape') finish(false)
         }}
         aria-label={ariaLabel}
-        className="min-w-0 max-w-full px-1.5 py-0.5 rounded border border-gray-300 bg-white text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className="min-w-0 max-w-full px-1.5 py-0.5 rounded border border-gray-300 bg-surface text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-500"
       />
     </label>
   )

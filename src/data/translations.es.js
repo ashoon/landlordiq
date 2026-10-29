@@ -255,4 +255,7 @@ export default {
   'That file is too large (10 MB maximum).': 'Ese archivo es demasiado grande (máximo 10 MB).',
   'Receipt photo or PDF (optional)': 'Foto o PDF del recibo (opcional)',
   'Expense saved, but the receipt was not uploaded.': 'Gasto guardado, pero el recibo no se subió.',
+  'Switch to light mode': 'Cambiar a modo claro',
+  'Switch to dark mode': 'Cambiar a modo oscuro',
+  Views: 'Vistas',
 }

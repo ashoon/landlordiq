@@ -22,11 +22,10 @@ import {
   subscribeStatus,
 } from '../../data/attachments.js'
 import { t, formatLocaleDate, capitalize } from '../../data/i18n.js'
+import { inputCls } from '../common/ui.js'
 
 const EMPTY_FORM = { category: EXPENSE_CATEGORIES[0], unitId: '', amount: '', note: '' }
 
-const inputCls =
-  'w-full px-2 py-1.5 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white'
 
 /**
  * MaintenanceExpenses — form and list for logging maintenance expenses against the
@@ -106,8 +105,8 @@ export default function MaintenanceExpenses({ month, onChange }) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">{t('Add Maintenance Expense')}</h3>
+    <div className="bg-surface rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
+      <h3 className="text-base font-semibold text-gray-900">{t('Add Maintenance Expense')}</h3>
       <p className="text-xs text-gray-500 mb-4">{t('Logged against')} {monthLabel}</p>
 
       <form onSubmit={submit} className="grid grid-cols-2 gap-3">
@@ -170,7 +169,7 @@ export default function MaintenanceExpenses({ month, onChange }) {
           <button
             type="submit"
             disabled={saving}
-            className="text-xs font-medium px-4 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-40"
+            className="text-xs font-medium px-4 py-1.5 rounded bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-40"
           >
             {saving ? t('Uploading…') : t('Add Expense')}
           </button>

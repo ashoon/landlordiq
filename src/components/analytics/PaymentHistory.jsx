@@ -49,8 +49,8 @@ export default function PaymentHistory() {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700">{t('Payment history by tenant')}</h3>
+    <div className="bg-surface rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
+      <h3 className="text-base font-semibold text-gray-900">{t('Payment history by tenant')}</h3>
       <p className="text-xs text-gray-500 mb-4">
         {t('Every month the tenant owed rent, from when tracking started. Pick a tenant to see what they paid and when.')}
       </p>
@@ -62,7 +62,7 @@ export default function PaymentHistory() {
           <label className="block text-xs text-gray-500 max-w-md">
             {t('Tenant')}
             <select
-              className="mt-1 w-full px-2 py-1.5 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white"
+              className="mt-1 w-full px-2 py-1.5 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 bg-surface"
               value={selected.key}
               onChange={(e) => setPicked(e.target.value)}
             >

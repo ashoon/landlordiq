@@ -19,6 +19,7 @@ import {
 import { formatCurrency } from '../../data/currency.js'
 import AttachmentList from '../common/AttachmentList.jsx'
 import { t, getLanguage } from '../../data/i18n.js'
+import { inputCls, btnCls } from '../common/ui.js'
 
 const EMPTY_FORM = {
   address: '',
@@ -34,11 +35,7 @@ const EMPTY_FORM = {
   serviceElectricity: '',
 }
 
-const inputCls =
-  'w-full px-2 py-1 rounded border border-gray-300 text-sm text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white'
 
-const btnCls =
-  'text-xs font-medium px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40'
 
 /** Returns "1st", "2nd", "3rd", "4th"… for a day of the month (plain "1", "2"… in Spanish). */
 function ordinal(n) {
@@ -168,7 +165,7 @@ export default function ManageUnits({ onChange }) {
     const label = (text) => <span className="block text-[10px] uppercase text-gray-500 mb-0.5">{text}</span>
 
     return (
-      <tr key={key} className="border-b border-gray-100 bg-blue-50">
+      <tr key={key} className="border-b border-gray-100 bg-brand-50">
         {mode === 'edit' && (
           <>
             <td className="px-3 py-2">
@@ -237,10 +234,10 @@ export default function ManageUnits({ onChange }) {
         )}
 
         <td className="px-3 py-2 w-44 text-right whitespace-nowrap">
-          <button onClick={save} className="text-xs font-medium px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
+          <button onClick={save} className="text-xs font-medium px-3 py-1 rounded bg-brand-600 text-white hover:bg-brand-700">
             {saveLabel}
           </button>
-          <button onClick={cancel} className="ml-2 text-xs font-medium px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-white">
+          <button onClick={cancel} className="ml-2 text-xs font-medium px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-surface">
             {t('Cancel')}
           </button>
         </td>
@@ -287,13 +284,13 @@ export default function ManageUnits({ onChange }) {
   }
 
   return (
-    <section className="mt-8 bg-white rounded-lg border border-gray-200">
+    <section className="mt-8 bg-surface rounded-xl border border-gray-200 shadow-sm">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
-        <span className="text-sm font-semibold text-gray-700">
+        <span className="text-base font-semibold text-gray-900">
           {t('Manage Units')} <span className="font-normal text-gray-500">({units.length})</span>
         </span>
         <span className="text-xs text-gray-500">{open ? t('Hide') : t('Show')}</span>
@@ -308,7 +305,7 @@ export default function ManageUnits({ onChange }) {
             <button
               onClick={startAdd}
               disabled={editingId !== null}
-              className="text-xs font-medium px-3 py-1.5 rounded bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-40"
+              className="text-xs font-medium px-3 py-1.5 rounded bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-40"
             >
               {t('+ Add Unit')}
             </button>

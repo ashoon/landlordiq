@@ -29,8 +29,8 @@ export default function FilterBar({ activeFilter, onFilterChange, searchQuery, o
             onClick={() => onFilterChange(f.value)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
               activeFilter === f.value
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-surface text-gray-600 border-gray-300 hover:border-gray-400'
             }`}
           >
             {f.label}
@@ -49,7 +49,7 @@ export default function FilterBar({ activeFilter, onFilterChange, searchQuery, o
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={t('Search address, tenant or phone…')}
-          className="pl-8 pr-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white w-full sm:w-80"
+          className="pl-8 pr-3 py-1.5 rounded-full border border-gray-300 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 bg-surface w-full sm:w-80"
         />
         {searchQuery && (
           <button

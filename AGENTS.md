@@ -59,6 +59,7 @@ landlordiq/
 │   │   ├── insights.js                 # Tenant insights: who pays late / in parts (computed, nothing stored)
 │   │   ├── attachments.js              # Photo/PDF attach helper: validate, shrink photos, upload to Drive, reference lists
 │   │   ├── currency.js                 # COP formatting + "mil" helpers (number format follows the language)
+│   │   ├── theme.js                    # Light/dark mode (per device) + chart colours per theme
 │   │   ├── i18n.js                     # English/Spanish: t(), getLanguage/setLanguage, locale date helpers
 │   │   ├── translations.es.js          # Spanish texts, keyed by the English text
 │   │   ├── store.js                    # Only module touching localStorage; in-memory cache + events
@@ -66,10 +67,12 @@ landlordiq/
 │   │   └── driveSync.js                # Google Drive sync (sign-in, debounce, polling, merging)
 │   └── components/
 │       ├── common/
-│       │   └── AttachmentList.jsx      # File list + "Attach" button (contract scans, receipts)
+│       │   ├── AttachmentList.jsx      # File list + "Attach" button (contract scans, receipts)
+│       │   └── ui.js                   # Shared Tailwind class strings (inputCls, btnCls, primaryBtnCls, cardCls)
 │       ├── layout/
 │       │   ├── Header.jsx              # Property name, date, Drive status, month picker, tab switcher
 │       │   ├── DriveStatus.jsx         # Connect / Reconnect / Save now / Disconnect chip
+│       │   ├── ThemeSwitcher.jsx       # Sun / moon button: light and dark mode
 │       │   ├── LanguageSwitcher.jsx    # English / Spanish flag buttons in the header
 │       │   ├── SyncBanner.jsx          # Conflict / expired sign-in / offline / error notice
 │       │   └── SummaryStrip.jsx        # Aggregate counts strip (dashboard tab only)
@@ -349,6 +352,22 @@ and to **maintenance expenses** and **annual tax payments** ("Attach receipt"). 
   (`drive.file` only grants access to files the app created for that account). The upload paths were not exercised against
   a real Drive account when written; only the data logic was checked.
 - **Privacy:** contracts and cédulas are sensitive; they live only in the user's Drive and browser, never in git or the build.
+
+### Look & feel (theme)
+
+- **Font:** Inter (variable), bundled via `@fontsource-variable/inter` so it works offline. `text-xs` / `text-sm` are set one step larger
+  in `tailwind.config.js` (13 px / 14.4 px); do not use `text-[11px]`-style sizes.
+- **Colours are CSS variables** (`src/styles/index.css`, space-separated RGB) mapped in `tailwind.config.js`, so components use ordinary
+  utilities and dark mode needs no `dark:` variants: the `.dark` class on `<html>` swaps the variables. Palette: slate `gray-*`
+  neutrals, `brand-*` (deep blue-teal) as the one accent/primary colour, `bg-surface` for panels (white / dark navy).
+  Use `bg-surface` instead of `bg-white`, and `bg-brand-600 text-white` for primary buttons (never `bg-gray-900 text-white`: gray flips in dark mode).
+- **Status colours are unchanged**: `green-500`, `amber-400`, `red-500` keep Tailwind's values in both modes; only their tints/text
+  shades (`*-50`, `*-100`, `*-600/700/800`) adapt for dark mode. Unit tiles use a thin border with a thick left edge in the status colour.
+- **Dark mode:** `theme.js` (`getTheme`, `setTheme`, `subscribeTheme`, `getChartColors`), button in the header (`ThemeSwitcher.jsx`).
+  Stored per device under `landlordiq_theme` via `store.js` (not synced to Drive); first visit follows the OS setting. Recharts needs real
+  colour values, so charts read `getChartColors()` (App re-renders on theme change).
+- Shared class strings live in `components/common/ui.js`; reuse them rather than copying input/button classes.
+- Contrast was checked for both modes (body/secondary text 5.4:1 or better on tiles; hint text `gray-400` about 3.6:1 and used only for placeholders).
 
 ### Costs
 

@@ -66,7 +66,7 @@ export default function AttachmentList({ files, kind, label, onAdd, onRemove }) 
                 onClick={() => open(f.id)}
                 disabled={!available}
                 title={f.uploadedAt ? formatDueDate(f.uploadedAt.slice(0, 10)) : ''}
-                className="min-w-0 truncate text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                className="min-w-0 truncate text-brand-700 hover:underline disabled:text-gray-400 disabled:no-underline"
               >
                 {f.name}
               </button>

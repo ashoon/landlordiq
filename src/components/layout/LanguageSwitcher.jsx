@@ -55,7 +55,7 @@ export default function LanguageSwitcher() {
             aria-label={l.label}
             title={l.label}
             className={`rounded p-1 border-2 transition-opacity ${
-              active ? 'border-blue-600 opacity-100' : 'border-transparent opacity-50 hover:opacity-100'
+              active ? 'border-brand-600 opacity-100' : 'border-transparent opacity-50 hover:opacity-100'
             }`}
           >
             <Flag />
