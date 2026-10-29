@@ -481,7 +481,19 @@ export function describePayment(rentAmount, alreadyPaid, amount) {
   }
 }
 
-/** Reads a stored override { paid, paidDate, dueDate?, amountPaid? }: legacy boolean values have no paid date. */
+/**
+ * Part payments of an override as a dated list, oldest first. Older records only stored a running
+ * total (`amountPaid`); that total is shown as one entry with no date.
+ *
+ * @param {{ payments?: Array<{ id: string, amount: number, date: string }>, amountPaid?: number } | null} override
+ * @returns {Array<{ id: string, amount: number, date: string | null }>}
+ */
+function paymentEntries(override) {
+  if (override?.payments?.length) return [...override.payments].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+  return override?.amountPaid > 0 ? [{ id: 'legacy', amount: override.amountPaid, date: null }] : []
+}
+
+/** Reads a stored override { paid, paidDate, dueDate?, payments?, amountPaid? }: legacy boolean values have no paid date. */
 function normalizeOverride(value) {
   if (value === undefined) return null
   if (typeof value === 'boolean') {
@@ -560,14 +572,17 @@ export function getAllTenants(monthKey = getMonthKey()) {
 
       const paid = override?.paid ?? false
       const paidDate = paid ? override.paidDate : null
-      // A partial payment keeps the unit unpaid (status follows the due date) but counts toward collected
-      const amountPaid = paid ? tenant.rentAmount : Math.min(override?.amountPaid ?? 0, tenant.rentAmount)
+      // Part payments keep the unit unpaid (status follows the due date) but count toward collected
+      const entries = paymentEntries(override)
+      const received = entries.reduce((sum, p) => sum + p.amount, 0)
+      const amountPaid = paid ? tenant.rentAmount : Math.min(received, tenant.rentAmount)
 
       const enriched = {
         ...tenant,
         dueDate,
         paidCurrentMonth: paid,
         paidDate,
+        paymentLog: entries,
         amountPaid,
         balance: tenant.rentAmount - amountPaid,
         daysCovered: daysCoveredBy(amountPaid, tenant.rentAmount),
@@ -662,8 +677,8 @@ function readPayment(overrides, id, monthKey) {
 /**
  * Persists a paid/unpaid override for a tenant in a given month.
  * Marking paid records today's date as the date paid (editable with setPaidDate) and settles the
- * month in full; marking unpaid clears the date and any part payment. A due date changed for the
- * month is kept.
+ * month in full; the part payments stay in the record as history. Marking unpaid clears the date and
+ * all part payments. A due date changed for the month is kept.
  *
  * @param {string} id - Tenant ID (e.g. "T01")
  * @param {boolean} paid
@@ -671,7 +686,8 @@ function readPayment(overrides, id, monthKey) {
  */
 export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
   const overrides = getData('payments')
-  const { amountPaid: _part, ...current } = readPayment(overrides, id, monthKey) ?? {}
+  const { amountPaid: _total, payments: history, ...current } = readPayment(overrides, id, monthKey) ?? {}
+  if (paid && history?.length) current.payments = history
   overrides[paymentKey(id, monthKey)] = { ...current, paid, paidDate: paid ? toIso(new Date()) : null }
   setData('payments', overrides)
 }
@@ -688,28 +704,40 @@ export function validatePartPayment(amount) {
 }
 
 /**
- * Records money received towards a month's rent without necessarily paying it in full. Amounts add up
- * over several payments. When the total reaches the rent the month is marked paid (today's date);
- * otherwise the unit stays unpaid with `amountPaid` / `balance` / `daysCovered` filled in.
+ * Records money received towards a month's rent without necessarily paying it in full. Each payment is
+ * saved as its own dated entry (`paymentLog` on the unit's row) and amounts add up. The amount that would
+ * go over the rent is not recorded. When the total reaches the rent the month is marked paid (today's
+ * date); otherwise the unit stays unpaid with `amountPaid` / `balance` / `daysCovered` filled in.
  *
  * @param {string} id - Tenant ID (e.g. "T01")
  * @param {number} amount - whole pesos received now
  * @param {string} [monthKey] - defaults to the current month
+ * @param {string} [date] - ISO date received, defaults to today
  * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null} the result, or null when nothing was recorded
  */
-export function recordPartialPayment(id, amount, monthKey = getMonthKey()) {
-  if (validatePartPayment(amount)) return null
+export function recordPartialPayment(id, amount, monthKey = getMonthKey(), date = toIso(new Date())) {
+  if (validatePartPayment(amount) || validateDate(date)) return null
   const tenant = getAllTenants(monthKey).find((t) => t.id === id)
   if (!tenant || tenant.status === 'vacant') return null
 
   const result = describePayment(tenant.rentAmount, tenant.amountPaid, amount)
-  if (result.complete) {
-    setPaymentStatus(id, true, monthKey)
-    return result
-  }
   const overrides = getData('payments')
-  const current = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
-  overrides[paymentKey(id, monthKey)] = { ...current, paid: false, paidDate: null, amountPaid: result.totalPaid }
+  const stored = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
+  const { amountPaid: _total, ...current } = stored
+  // Keep older total-only records in the list (undated, shown as "Earlier") so they aren't lost
+  const earlier = paymentEntries(stored).map((p) => (p.id === 'legacy' ? { ...p, id: `legacy-${monthKey}` } : p))
+  const entry = {
+    id: `P${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    amount: result.totalPaid - tenant.amountPaid,
+    date,
+  }
+  const payments = [...earlier, entry]
+
+  if (result.complete) {
+    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: true, paidDate: date }
+  } else {
+    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: false, paidDate: null }
+  }
   setData('payments', overrides)
   return result
 }

@@ -216,7 +216,8 @@ Marking a tenant paid in next month records the payment under that month, so it 
 `Header.jsx` and passed to SummaryStrip, Dashboard and Analytics. `getAllTenants(month)`,
 `getSummaryStats(month)` and `getFinancials(month)` (up to 6 months ending at the selection, never before the tracking start) all take it.
 localStorage payment overrides (`landlordiq_payments`) are keyed `"<YYYY-MM>:<id>"` with value
-`{ paid: boolean, paidDate: "YYYY-MM-DD" | null, dueDate?: "YYYY-MM-DD", amountPaid?: number }` (legacy boolean values still read).
+`{ paid: boolean, paidDate: "YYYY-MM-DD" | null, dueDate?: "YYYY-MM-DD", payments?: [{ id, amount, date }], amountPaid?: number }`
+(legacy boolean values still read; `amountPaid` is the older running-total form of part payments).
 Marking paid stores today's date. On each card (`UnitCard.jsx`) the **Due** date (that month only, `setDueDate`) and, once
 paid, the **Paid** date (`setPaidDate`) are plain text; clicking one turns it into a date field
 (`dashboard/EditableDate.jsx`, calendar opens at once). A change saves on blur / Enter if it is a valid date
@@ -226,12 +227,17 @@ the override; marking unpaid clears the paid date and any part payment but keeps
 ### Part payments
 
 "Mark as Paid" opens a panel on the card: **Paid in full**, or a **part payment** typed in COP mil (`recordPartialPayment`,
-`validatePartPayment`, `describePayment` preview in `tenants.js`). Amounts add up; when the total reaches the rent the month
-is marked paid (today's date). Until then the unit stays **unpaid** (status still follows the due date) and the override
-carries `amountPaid`. `getAllTenants()` adds `amountPaid`, `balance` and `daysCovered` to every row;
+`validatePartPayment`, `describePayment` preview in `tenants.js`). Each part payment is saved as its own dated entry in the
+override's `payments` list (`{ id, amount, date }`, date = today) and shown on the card as a list ("Oct 3, 2026 · COP 100,000").
+Entries have ids so two devices adding payments at once both survive the Drive merge. An older total-only `amountPaid`
+shows as one undated "Earlier" entry and is kept when a new payment is added. Amounts add up; an amount above the balance
+is trimmed to it. When the total reaches the rent the month is marked paid, with the date of the last payment. Until then
+the unit stays **unpaid** (status still follows the due date). `getAllTenants()` adds `paymentLog`, `amountPaid`,
+`balance` and `daysCovered` to every row;
 `daysCoveredBy()` = `floor(amountPaid × 30 / rent)` with `DAYS_PER_MONTH = 30` (never rounds up in the tenant's favour).
 `getSummaryStats()` counts `amountPaid` in `totalCollected` and only the `balance` in the overdue / due-soon / upcoming
-totals. Marking unpaid clears the part payment. Dashboard keeps the tile in place after a part payment.
+totals. Marking unpaid clears all part payments; marking paid in full keeps the list as history. Dashboard keeps the
+tile in place after a part payment.
 
 ### Costs
 

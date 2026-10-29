@@ -110,6 +110,15 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
               Balance {formatCurrency(unit.balance)}
             </p>
           )}
+          {unit.paymentLog.length > 0 && (
+            <ul className="mt-0.5 text-[11px] sm:text-xs text-gray-500" aria-label={`Payments received, ${unit.tenantName}`}>
+              {unit.paymentLog.map((p) => (
+                <li key={p.id}>
+                  {p.date ? formatDueDate(p.date) : 'Earlier'} · {formatCurrency(p.amount)}
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="mt-0.5">
             <EditableDate
               label="Due"
@@ -156,7 +165,9 @@ export default function UnitCard({ unit, onTogglePaid, onRecordPayment, onPaidDa
           <button
             onClick={() => {
               setPaying(false)
-              onTogglePaid(unit.id, true)
+              // With part payments in, the balance is logged as a dated payment so the list adds up to the rent
+              if (unit.paymentLog.length > 0) onRecordPayment(unit.id, unit.balance)
+              else onTogglePaid(unit.id, true)
             }}
             className="text-[11px] sm:text-xs font-medium px-2 py-1 rounded border border-green-600 bg-green-600 text-white hover:bg-green-700"
           >
