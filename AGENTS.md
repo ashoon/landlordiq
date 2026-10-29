@@ -262,6 +262,13 @@ tile in place after a part payment.
 - **Notes:** `unitNote` lives on the unit (stays with the address), `tenantNote` on the tenancy (goes with the tenant). Both are
   edited in Manage Units and shown at the bottom of the tile (`tenantNote` not on vacant tiles).
 
+### Cédula (tenant ID number)
+
+Free-text `cedula` on the **tenancy** (set in Manage Units → Edit or Move in), so it belongs to the person living there and
+the previous tenant's number stays in the history. It is shown only in the Manage Units table: not on unit tiles, not in the
+dashboard search. No separate person record exists: a person who rents again is typed in again (a nullable `personId` was
+deliberately not added; see the unit / tenancy / payments split above).
+
 ### Paid services (water, gas, electricity)
 
 Three free-text fields on the unit record (`serviceWater`, `serviceGas`, `serviceElectricity`) for services the tenant pays

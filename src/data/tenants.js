@@ -134,6 +134,7 @@ function baseTenancy(unit) {
     tenantName: unit.tenantName,
     phone: unit.phone,
     tenantNote: unit.tenantNote ?? '',
+    cedula: unit.cedula ?? '',
     rentAmount: unit.rentAmount,
     dueDay: unit.dueDay,
     paidCurrentMonth: unit.paidCurrentMonth,
@@ -240,7 +241,7 @@ function validateTenantFields(fields) {
 /**
  * Validates editable unit fields. Addresses may repeat: several tenants can live at one address.
  *
- * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, tenantNote?: string, unitNote?: string, serviceWater?: string, serviceGas?: string, serviceElectricity?: string }} fields
+ * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, cedula?: string, tenantNote?: string, unitNote?: string, serviceWater?: string, serviceGas?: string, serviceElectricity?: string }} fields
  * @returns {string | null} error message, or null when valid
  */
 export function validateUnit(fields) {
@@ -256,6 +257,7 @@ function cleanFields(fields) {
     rentAmount: Number(fields.rentAmount),
     dueDay: Number(fields.dueDay),
     tenantNote: String(fields.tenantNote ?? '').trim(),
+    cedula: String(fields.cedula ?? '').trim(),
     unitNote: String(fields.unitNote ?? '').trim(),
     serviceWater: String(fields.serviceWater ?? '').trim(),
     serviceGas: String(fields.serviceGas ?? '').trim(),
@@ -278,7 +280,7 @@ function patchUnit(id, patch) {
  * address, unit note and services always stay with the unit.
  *
  * @param {string} id
- * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, tenantNote?: string, unitNote?: string, serviceWater?: string, serviceGas?: string, serviceElectricity?: string }} fields
+ * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, cedula?: string, tenantNote?: string, unitNote?: string, serviceWater?: string, serviceGas?: string, serviceElectricity?: string }} fields
  */
 export function updateUnit(id, fields) {
   const clean = cleanFields(fields)
@@ -302,7 +304,7 @@ export function updateUnit(id, fields) {
 /**
  * Adds a new unit (unpaid) and returns its generated id.
  *
- * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, tenantNote?: string, unitNote?: string }} fields
+ * @param {{ address: string, tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, cedula?: string, tenantNote?: string, unitNote?: string }} fields
  * @returns {string}
  */
 export function addUnit(fields) {
@@ -372,7 +374,7 @@ export function moveOutUnit(id, date) {
  * Validates a new tenant move-in.
  *
  * @param {string} id
- * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string, tenantNote?: string }} fields
+ * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string, cedula?: string, tenantNote?: string }} fields
  * @returns {string | null}
  */
 export function validateMoveIn(id, fields) {
@@ -391,7 +393,7 @@ export function validateMoveIn(id, fields) {
  * target move-in date, if any, is cleared because it has been met.
  *
  * @param {string} id
- * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string, tenantNote?: string }} fields
+ * @param {{ tenantName: string, phone?: string, rentAmount: number|string, dueDay: number|string, date: string, cedula?: string, tenantNote?: string }} fields
  */
 export function moveInUnit(id, fields) {
   const { list } = loadTenancies(id)
@@ -399,6 +401,7 @@ export function moveInUnit(id, fields) {
     tenantName: String(fields.tenantName).trim(),
     phone: String(fields.phone ?? '').trim(),
     tenantNote: String(fields.tenantNote ?? '').trim(),
+    cedula: String(fields.cedula ?? '').trim(),
     rentAmount: Number(fields.rentAmount),
     dueDay: Number(fields.dueDay),
     paidCurrentMonth: false,

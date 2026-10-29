@@ -136,6 +136,8 @@ export default {
   'Amount (COP mil)': 'Monto (COP mil)',
   'e.g. 450': 'ej. 450',
   'Note (optional)': 'Nota (opcional)',
+  'Cédula (ID number)': 'Cédula (número de identificación)',
+  Cédula: 'Cédula',
   'Unit (optional)': 'Unidad (opcional)',
   'Not linked to a unit': 'Sin unidad asociada',
   'Maintenance by Address': 'Mantenimiento por dirección',

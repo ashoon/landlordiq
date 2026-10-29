@@ -23,6 +23,7 @@ const EMPTY_FORM = {
   phone: '',
   rentAmount: '',
   dueDay: '',
+  cedula: '',
   tenantNote: '',
   unitNote: '',
   serviceWater: '',
@@ -82,6 +83,7 @@ export default function ManageUnits({ onChange }) {
       phone: unit.phone,
       rentAmount: String(unit.rentAmount),
       dueDay: String(unit.dueDay),
+      cedula: unit.cedula ?? '',
       tenantNote: unit.tenantNote ?? '',
       unitNote: unit.unitNote ?? '',
       serviceWater: unit.serviceWater ?? '',
@@ -95,6 +97,7 @@ export default function ManageUnits({ onChange }) {
     begin(unit.id, 'moveIn', {
       tenantName: '',
       phone: '',
+      cedula: '',
       tenantNote: '',
       rentAmount: String(unit.rentAmount),
       dueDay: String(unit.dueDay),
@@ -175,6 +178,7 @@ export default function ManageUnits({ onChange }) {
             </td>
             <td className="px-3 py-2">
               <input className={inputCls} value={form.tenantName} onChange={setField('tenantName')} placeholder={t('Tenant name')} />
+              <input className={`${inputCls} mt-1`} value={form.cedula} onChange={setField('cedula')} placeholder={t('Cédula (ID number)')} aria-label={t('Cédula (ID number)')} />
               <input className={`${inputCls} mt-1`} value={form.tenantNote} onChange={setField('tenantNote')} placeholder={t('Tenant note (e.g. contact preference, parking)')} />
             </td>
             <td className="px-3 py-2 w-36">
@@ -208,6 +212,7 @@ export default function ManageUnits({ onChange }) {
             <td className="px-3 py-2">
               {label(t('New tenant'))}
               <input className={inputCls} value={form.tenantName} onChange={setField('tenantName')} placeholder={t('Tenant name')} />
+              <input className={`${inputCls} mt-1`} value={form.cedula} onChange={setField('cedula')} placeholder={t('Cédula (ID number)')} aria-label={t('Cédula (ID number)')} />
               <input className={`${inputCls} mt-1`} value={form.tenantNote} onChange={setField('tenantNote')} placeholder={t('Tenant note (e.g. contact preference, parking)')} />
             </td>
             <td className="px-3 py-2 w-36">
@@ -334,6 +339,9 @@ export default function ManageUnits({ onChange }) {
                       <td className="px-3 py-2 text-gray-700">
                         {unit.vacant ? <span className="text-gray-400">{t('Vacant')}</span> : unit.tenantName}
                         {renderNote(unit)}
+                        {!unit.vacant && unit.cedula && (
+                          <p className="text-xs text-gray-500 mt-0.5">{t('Cédula')} {unit.cedula}</p>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-gray-700">{unit.vacant ? '' : unit.phone}</td>
                       <td className="px-3 py-2 text-gray-700">{formatCurrency(unit.rentAmount)}</td>
