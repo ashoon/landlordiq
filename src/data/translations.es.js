@@ -158,6 +158,9 @@ export default {
   'Pays in parts': 'Paga en partes',
   'Short history': 'Poco historial',
   Watch: 'Vigilar',
+  'Show all tenants ({count})': 'Mostrar todos los inquilinos ({count})',
+  'Show flagged tenants only ({count})': 'Mostrar solo inquilinos con alerta ({count})',
+  'No tenants need watching right now.': 'Ningún inquilino requiere vigilancia por ahora.',
   'Pays late: {n} of {total} months': 'Paga tarde: {n} de {total} meses',
   'Pays in parts: {n} of {total} months': 'Paga en partes: {n} de {total} meses',
   '* Fewer than {months} months of history. A low count may just mean little data.':

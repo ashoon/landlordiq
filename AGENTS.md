@@ -81,7 +81,7 @@ landlordiq/
 │           ├── MaintenancePie.jsx      # Recharts PieChart — maintenance by category
 │           ├── MaintenanceExpenses.jsx # Form + list to log maintenance expenses for the selected month
 │           ├── TaxPayments.jsx         # Annual property tax: record/list/delete payments
-│           └── TenantInsights.jsx      # Table: who pays late / in parts (flags under the tenant name)
+│           └── TenantInsights.jsx      # Table: flagged tenants (button shows all); flags under the tenant name
 └── landlordiq-demo/
     └── plans/
         ├── 01-architecture-overview.md
@@ -258,7 +258,7 @@ their own record. Rules (constants `GRACE_DAYS` 7, `FLAG_THRESHOLD` 2):
 - **Part-payment month**: the month has dated payments that are not a single payment covering the rent.
 - **Pays late** = 2 or more late months; **Pays in parts** = 2 or more part-payment months.
 
-Shown in `analytics/TenantInsights.jsx` (table for the selected month, `*` marks fewer than 6 judged months) and as a
+Shown in `analytics/TenantInsights.jsx` (table for the selected month; **only flagged tenants are listed** until the "Show all tenants" button is pressed, `isFlagged()` in `insights.js`; `*` marks fewer than 6 judged months) and as a
 violet **Watch** tag beside the status badge in `UnitCard.jsx` (reasons in its hover/aria text; never on vacant tiles).
 `Dashboard.jsx` joins the map to the tiles. The badges use violet/sky so they are not mistaken for a payment status colour.
 

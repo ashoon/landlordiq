@@ -148,6 +148,16 @@ function isPartPayment(row) {
  */
 
 /**
+ * Whether a tenant is flagged ("Pays late" and/or "Pays in parts"), i.e. worth watching.
+ *
+ * @param {TenantInsightEntry} entry
+ * @returns {boolean}
+ */
+export function isFlagged(entry) {
+  return entry.paysLate || entry.paysInParts
+}
+
+/**
  * Computes per-tenant payment behaviour for the window ending at `endMonthKey`.
  * Groups rows by tenant key (payKey ?? id) so replacement tenants appear as their
  * own entries. Vacant rows are skipped. Months not yet judged are ignored.
@@ -247,8 +257,8 @@ export function getTenantInsights(endMonthKey = getMonthKey()) {
 
   // Flagged first, then by most late months, then by address (natural order)
   results.sort((a, b) => {
-    const aFlagged = a.paysLate || a.paysInParts ? 0 : 1
-    const bFlagged = b.paysLate || b.paysInParts ? 0 : 1
+    const aFlagged = isFlagged(a) ? 0 : 1
+    const bFlagged = isFlagged(b) ? 0 : 1
     if (aFlagged !== bFlagged) return aFlagged - bFlagged
     if (b.lateMonths !== a.lateMonths) return b.lateMonths - a.lateMonths
     return a.address.localeCompare(b.address, undefined, { numeric: true, sensitivity: 'base' })

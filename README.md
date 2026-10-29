@@ -24,7 +24,8 @@ type are never translated.
 
 ## Tenant insights
 
-The **Analytics** tab ends with a *Tenant insights* table, and tenants who need watching get a violet **Watch** tag on
+The **Analytics** tab ends with a *Tenant insights* table that lists only the tenants who need watching (press
+*Show all tenants* to see everyone), and tenants who need watching get a violet **Watch** tag on
 their unit tile (hover or long-press it for the reason). Nothing extra is typed in: it is worked out from the payments you
 already mark.
 
