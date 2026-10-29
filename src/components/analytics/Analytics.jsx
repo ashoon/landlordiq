@@ -4,6 +4,7 @@ import KpiStrip from './KpiStrip.jsx'
 import RentBarChart from './RentBarChart.jsx'
 import MaintenancePie from './MaintenancePie.jsx'
 import MaintenanceExpenses from './MaintenanceExpenses.jsx'
+import MaintenanceByAddress from './MaintenanceByAddress.jsx'
 import TaxPayments from './TaxPayments.jsx'
 import TenantInsights from './TenantInsights.jsx'
 
@@ -27,6 +28,7 @@ export default function Analytics({ refreshKey, month }) {
         <MaintenancePie month={latestMonth} />
         <MaintenanceExpenses month={month} onChange={() => setExpensesVersion((v) => v + 1)} />
       </div>
+      <MaintenanceByAddress month={month} />
       <TaxPayments onChange={() => setExpensesVersion((v) => v + 1)} />
       <TenantInsights month={month} />
     </div>

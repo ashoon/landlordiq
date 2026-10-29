@@ -79,7 +79,8 @@ landlordiq/
 │           ├── KpiStrip.jsx            # 4-figure KPI row (latest month)
 │           ├── RentBarChart.jsx        # Recharts BarChart — Expected vs Collected
 │           ├── MaintenancePie.jsx      # Recharts PieChart — maintenance by category
-│           ├── MaintenanceExpenses.jsx # Form + list to log maintenance expenses for the selected month
+│           ├── MaintenanceExpenses.jsx # Form + list to log maintenance expenses for the selected month (optional unit)
+│           ├── MaintenanceByAddress.jsx # Table: maintenance spend per address (selected month + calendar year)
 │           ├── TaxPayments.jsx         # Annual property tax: record/list/delete payments
 │           └── TenantInsights.jsx      # Table: flagged tenants (button shows all); flags under the tenant name
 └── landlordiq-demo/
@@ -191,6 +192,12 @@ maintenance costs: `getFinancials()` totals them by category for each exact mont
 `getExpenses`, `validateExpense`, `EXPENSE_CATEGORIES` in `financials.js`). Pie and KPIs therefore update.
 Categories (in this order, General Repairs first/default): General Repairs, Plumbing, Electrical, Other (HVAC and Appliances were removed; old
 entries in those categories are ignored). There are no sample costs; management fee and insurance no longer exist.
+Each entry may also be linked to a unit: `unitId` plus the `address` it had when logged (both omitted when not linked). The
+address shown/grouped is the unit's *current* address, falling back to the saved one if the unit was deleted
+(`getExpenseAddress`). `getExpenseUnitOptions()` feeds the form's select (shared addresses get the tenant name added).
+`getMaintenanceByAddress(month)` totals the selected month and its calendar year per address, biggest yearly total first, with
+unlinked expenses in one last row (`address: null`); `analytics/MaintenanceByAddress.jsx` shows it. Linking never changes the
+pie chart or KPIs (those still total by category and month). Existing expenses stay unlinked.
 
 ### Annual property tax
 

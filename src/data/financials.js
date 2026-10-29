@@ -1,4 +1,4 @@
-import { getSummaryStats } from './tenants.js'
+import { getSummaryStats, getUnits } from './tenants.js'
 import { getData, setData } from './store.js'
 import { getTrackingStart } from './tracking.js'
 import { t, formatLocaleDate, capitalize } from './i18n.js'
@@ -11,10 +11,11 @@ function readExpenses() {
 }
 
 /**
- * Returns the maintenance expenses the user logged for a month, newest first.
+ * Returns the maintenance expenses the user logged for a month, newest first. An expense may be linked
+ * to a unit (`unitId`, plus the `address` it had when logged).
  *
  * @param {string} monthKey - "YYYY-MM"
- * @returns {Array<{ id: string, month: string, category: string, amount: number, note: string }>}
+ * @returns {Array<{ id: string, month: string, category: string, amount: number, note: string, unitId?: string, address?: string }>}
  */
 export function getExpenses(monthKey) {
   // Entries in categories that no longer exist (e.g. HVAC) are ignored
@@ -37,21 +38,78 @@ export function validateExpense(fields) {
 }
 
 /**
- * Logs a maintenance expense against a month, so the pie chart and KPIs pick it up.
+ * Units an expense can be linked to, as select options sorted by address. An address shared by several
+ * tenants gets the tenant name added so the options can be told apart.
+ *
+ * @returns {Array<{ id: string, label: string }>}
+ */
+export function getExpenseUnitOptions() {
+  const units = getUnits()
+  const counts = new Map()
+  for (const u of units) counts.set(u.address, (counts.get(u.address) ?? 0) + 1)
+  return units.map((u) => ({ id: u.id, label: counts.get(u.address) > 1 ? `${u.address} — ${u.tenantName}` : u.address }))
+}
+
+/** Address an expense belongs to: the unit's current address, else the one saved with the expense, else null. */
+function addressOf(expense, addressById) {
+  if (!expense.unitId) return null
+  return addressById.get(expense.unitId) ?? expense.address ?? null
+}
+
+/**
+ * Address of a logged expense (null when it isn't linked to a unit).
+ *
+ * @param {{ unitId?: string, address?: string }} expense
+ * @returns {string | null}
+ */
+export function getExpenseAddress(expense) {
+  return addressOf(expense, new Map(getUnits().map((u) => [u.id, u.address])))
+}
+
+/**
+ * Logs a maintenance expense against a month, so the pie chart and KPIs pick it up. It can optionally be
+ * linked to a unit; the unit's address is saved with it so it still reads correctly if the unit is deleted.
  *
  * @param {string} monthKey - "YYYY-MM"
- * @param {{ category: string, amount: number|string, note?: string }} fields
+ * @param {{ category: string, amount: number|string, note?: string, unitId?: string }} fields
  */
 export function addExpense(monthKey, fields) {
   const expenses = readExpenses()
+  const unit = fields.unitId ? getUnits().find((u) => u.id === fields.unitId) : null
   expenses.push({
     id: `E${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     month: monthKey,
     category: fields.category,
     amount: Number(fields.amount),
     note: String(fields.note ?? '').trim(),
+    ...(unit ? { unitId: unit.id, address: unit.address } : {}),
   })
   setData('expenses', expenses)
+}
+
+/**
+ * Maintenance spending per address for a month and for the calendar year it falls in, biggest yearly
+ * total first. Expenses not linked to a unit are collected in one last row with `address: null`.
+ *
+ * @param {string} monthKey - "YYYY-MM"
+ * @returns {Array<{ address: string | null, month: number, year: number }>}
+ */
+export function getMaintenanceByAddress(monthKey) {
+  const year = monthKey.slice(0, 4)
+  const addressById = new Map(getUnits().map((u) => [u.id, u.address]))
+  const rows = new Map()
+  for (const e of readExpenses()) {
+    if (!EXPENSE_CATEGORIES.includes(e.category) || e.month.slice(0, 4) !== year) continue
+    const address = addressOf(e, addressById)
+    const row = rows.get(address) ?? { address, month: 0, year: 0 }
+    row.year += e.amount
+    if (e.month === monthKey) row.month += e.amount
+    rows.set(address, row)
+  }
+  return [...rows.values()].sort((a, b) => {
+    if ((a.address === null) !== (b.address === null)) return a.address === null ? 1 : -1
+    return b.year - a.year || (a.address ?? '').localeCompare(b.address ?? '')
+  })
 }
 
 /**
