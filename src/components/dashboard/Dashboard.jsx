@@ -98,7 +98,7 @@ export default function Dashboard({ month, onStatsChange }) {
   }
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-3 sm:p-6">
       <FilterBar
         activeFilter={filterStatus}
         onFilterChange={handleFilterChange}
@@ -112,7 +112,7 @@ export default function Dashboard({ month, onStatsChange }) {
       ) : tenants.length === 0 ? (
         <p className="text-gray-500 text-sm">No units match this filter.</p>
       ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-2 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {tenants.map((unit) => (
             <UnitCard
               key={`${unit.id}-${month}-${refreshKey}`}

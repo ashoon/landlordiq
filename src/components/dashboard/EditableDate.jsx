@@ -54,7 +54,7 @@ export default function EditableDate({ label, value, display, onSave, textClassN
   }
 
   return (
-    <label className={`flex items-center gap-2 ${textClassName}`}>
+    <label className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 ${textClassName}`}>
       {label}
       <input
         ref={inputRef}
@@ -67,7 +67,7 @@ export default function EditableDate({ label, value, display, onSave, textClassN
           if (e.key === 'Escape') finish(false)
         }}
         aria-label={ariaLabel}
-        className="px-1.5 py-0.5 rounded border border-gray-300 bg-white text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className="min-w-0 max-w-full px-1.5 py-0.5 rounded border border-gray-300 bg-white text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
       />
     </label>
   )

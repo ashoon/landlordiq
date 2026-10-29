@@ -66,33 +66,33 @@ export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDa
   }
 
   return (
-    <div className={`rounded-lg border-2 p-4 flex flex-col gap-3 ${statusStyles[unit.status]}`}>
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+    <div className={`rounded-lg border-2 p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-3 ${statusStyles[unit.status]}`}>
+      <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5">
+        <span className="text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
           {unit.address}
         </span>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeStyles[unit.status]}`}>
+        <span className={`text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full ${badgeStyles[unit.status]}`}>
           {badgeLabels[unit.status]}
         </span>
       </div>
 
       {unit.status === 'vacant' ? (
         <div>
-          <p className="font-semibold text-gray-500 text-sm">{getVacancyLabel()}</p>
+          <p className="font-semibold text-gray-500 text-xs sm:text-sm">{getVacancyLabel()}</p>
           {unit.moveInDate && (
-            <p className="text-xs font-medium mt-1 text-gray-700">
+            <p className="text-xs font-medium mt-0.5 sm:mt-1 text-gray-700">
               Move-in {formatDueDate(unit.moveInDate)}
               {unit.moveInDate <= getTodayIso() ? '' : ' (scheduled)'}
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-2">Rent lost</p>
-          <p className="text-xl font-bold text-gray-500">{formatCurrency(unit.rentAmount)}</p>
+          <p className="text-xs text-gray-500 mt-1 sm:mt-2">Rent lost</p>
+          <p className="text-base sm:text-xl font-bold text-gray-500">{formatCurrency(unit.rentAmount)}</p>
         </div>
       ) : (
         <div>
-          <p className="font-semibold text-gray-900 text-sm">{unit.tenantName}</p>
-          {unit.phone && <p className="text-xs text-gray-500">{unit.phone}</p>}
-          <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(unit.rentAmount)}</p>
+          <p className="font-semibold text-gray-900 text-xs sm:text-sm">{unit.tenantName}</p>
+          {unit.phone && <p className="text-[11px] sm:text-xs text-gray-500">{unit.phone}</p>}
+          <p className="text-base sm:text-xl font-bold text-gray-900 mt-0.5 sm:mt-1">{formatCurrency(unit.rentAmount)}</p>
           <div className="mt-0.5">
             <EditableDate
               label="Due"
@@ -104,7 +104,7 @@ export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDa
             />
           </div>
           {unit.status === 'paid' && unit.paidDate && (
-            <div className="mt-1">
+            <div className="mt-0.5 sm:mt-1">
               <EditableDate
                 label="Paid"
                 value={unit.paidDate}
@@ -116,7 +116,7 @@ export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDa
             </div>
           )}
           {daysLabel && (
-            <p className={`text-xs font-medium mt-1 ${daysLabel.cls}`}>{daysLabel.text}</p>
+            <p className={`text-xs font-medium mt-0.5 sm:mt-1 ${daysLabel.cls}`}>{daysLabel.text}</p>
           )}
         </div>
       )}
@@ -124,7 +124,7 @@ export default function UnitCard({ unit, onTogglePaid, onPaidDateChange, onDueDa
       {unit.status !== 'vacant' && (
         <button
           onClick={() => onTogglePaid(unit.id, !unit.paidCurrentMonth)}
-          className={`mt-auto text-xs font-medium px-3 py-1.5 rounded border transition-colors ${
+          className={`mt-auto text-[11px] sm:text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded border transition-colors ${
             unit.status === 'paid'
               ? 'border-green-600 text-green-700 hover:bg-green-100'
               : 'border-gray-400 text-gray-600 hover:bg-white'
