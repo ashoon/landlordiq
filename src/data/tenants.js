@@ -513,11 +513,16 @@ export function getStatusForTenant(tenant) {
   return diffDays <= getDueSoonWindowDays() ? 'due-soon' : 'upcoming'
 }
 
-/** Builds the due date for a tenant in the given month: `dueDay` of that month, clamped to its length. */
+/**
+ * Builds the due date for a tenant in the given month: `dueDay` of that month, clamped to its length.
+ * End-of-month rent (`dueDay >= 30`) resolves to the month's last day (e.g. 31st in 31-day months),
+ * so it is not overdue until the 1st of the following month.
+ */
 function getDueDate(unit, monthKey) {
   const [y, m] = monthKey.split('-').map(Number)
   const lastDay = new Date(y, m, 0).getDate()
-  return toIso(new Date(y, m - 1, Math.min(unit.dueDay, lastDay)))
+  const day = unit.dueDay >= 30 ? lastDay : Math.min(unit.dueDay, lastDay)
+  return toIso(new Date(y, m - 1, day))
 }
 
 /**
