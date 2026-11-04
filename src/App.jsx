@@ -78,7 +78,11 @@ export default function App() {
       {activeTab === 'dashboard' && <SummaryStrip key={`summary-${dataKey}`} refreshKey={statsKey} month={selectedMonth} />}
       <main key={`main-${dataKey}`} className="flex-1">
         {activeTab === 'dashboard' ? (
-          <Dashboard month={selectedMonth} onStatsChange={() => setStatsKey((k) => k + 1)} />
+          <Dashboard
+            month={selectedMonth}
+            onSelectMonth={setSelectedMonth}
+            onStatsChange={() => setStatsKey((k) => k + 1)}
+          />
         ) : (
           <Analytics refreshKey={statsKey} month={selectedMonth} />
         )}

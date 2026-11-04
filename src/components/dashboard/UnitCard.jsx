@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getDaysRelative, formatDueDate, getTodayIso, describePayment, DAYS_PER_MONTH } from '../../data/tenants.js'
 import { formatCurrency, milToAmount } from '../../data/currency.js'
-import { t } from '../../data/i18n.js'
+import { t, formatMonthShort } from '../../data/i18n.js'
 import EditableDate from './EditableDate.jsx'
 
 /**
@@ -28,7 +28,8 @@ import EditableDate from './EditableDate.jsx'
  *   onPaidDateChange: (id: string, date: string) => void,
  *   onDueDateChange: (id: string, date: string) => void,
  *   onBalanceDueDateChange: (id: string, date: string) => void,
- *   onTargetMoveInChange: (id: string, date: string) => void
+ *   onTargetMoveInChange: (id: string, date: string) => void,
+ *   onSelectMonth?: (month: string) => void
  * }} props
  */
 export default function UnitCard({
@@ -40,6 +41,7 @@ export default function UnitCard({
   onDueDateChange,
   onBalanceDueDateChange,
   onTargetMoveInChange,
+  onSelectMonth,
 }) {
   const [paying, setPaying] = useState(false)
   const [amountText, setAmountText] = useState('')
@@ -73,7 +75,26 @@ export default function UnitCard({
   }
 
   function getDaysLabel() {
-    if (unit.status === 'paid') return null
+    if (unit.status === 'paid' && !(unit.priorArrears > 0)) return null
+    if (unit.priorArrears > 0) {
+      const oldestMonth = unit.priorUnpaidMonths?.[0]
+      const monthName = formatMonthShort(oldestMonth?.month)
+      const days = oldestMonth?.dueDate ? getDaysRelative(oldestMonth.dueDate) : null
+      if (days !== null && days < 0) {
+        const n = Math.abs(days)
+        return {
+          text:
+            n === 1
+              ? t('1 day overdue from {month}', { month: monthName })
+              : t('{n} days overdue from {month}', { n, month: monthName }),
+          cls: 'text-red-600',
+        }
+      }
+      return {
+        text: t('Overdue from {month}', { month: monthName }),
+        cls: 'text-red-600',
+      }
+    }
     const days = getDaysRelative(unit.dueDate)
     if (days < 0) {
       const n = Math.abs(days)
@@ -136,6 +157,40 @@ export default function UnitCard({
         </span>
       </div>
 
+      {unit.status !== 'vacant' && unit.priorArrears > 0 && (
+        <div className="flex flex-col gap-1 rounded-lg border border-red-300 bg-red-100/90 p-2 text-xs text-red-900">
+          <div className="flex items-center gap-1.5 font-semibold">
+            <span aria-hidden="true">⚠️</span>
+            <span>
+              {unit.priorUnpaidMonths.length === 1
+                ? t('1 past month unpaid ({months}) · {amount} overdue', {
+                    months: formatMonthShort(unit.priorUnpaidMonths[0].month),
+                    amount: formatCurrency(unit.priorArrears),
+                  })
+                : t('{n} past months unpaid ({months}) · {amount} overdue', {
+                    n: unit.priorUnpaidMonths.length,
+                    months: unit.priorUnpaidMonths.map((u) => formatMonthShort(u.month)).join(', '),
+                    amount: formatCurrency(unit.priorArrears),
+                  })}
+            </span>
+          </div>
+          {onSelectMonth && unit.priorUnpaidMonths.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {unit.priorUnpaidMonths.map((u) => (
+                <button
+                  key={u.month}
+                  type="button"
+                  onClick={() => onSelectMonth(u.month)}
+                  className="font-medium underline hover:text-red-950 transition-colors text-xs text-left"
+                >
+                  {t('View {month} →', { month: formatMonthShort(u.month) })}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {unit.status === 'vacant' ? (
         <div>
           <p className="font-semibold text-gray-600 text-sm">{getVacancyLabel()}</p>
@@ -164,7 +219,25 @@ export default function UnitCard({
         <div>
           <p className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">{unit.tenantName}</p>
           {unit.phone && <p className="text-xs text-gray-500">{unit.phone}</p>}
-          <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900 mt-1">{formatCurrency(unit.rentAmount)}</p>
+          {unit.priorArrears > 0 ? (
+            <div className="mt-1">
+              <p className="text-lg sm:text-2xl font-bold tracking-tight text-red-600">
+                {formatCurrency(unit.totalOwed ?? unit.balance + unit.priorArrears)}
+              </p>
+              <p className="text-xs font-medium text-gray-600">
+                {unit.paidCurrentMonth
+                  ? t('Total owed: {arrears} past-due (this month paid)', {
+                      arrears: formatCurrency(unit.priorArrears),
+                    })
+                  : t('Total owed: {arrears} past-due + {current} this month', {
+                      arrears: formatCurrency(unit.priorArrears),
+                      current: formatCurrency(unit.balance),
+                    })}
+              </p>
+            </div>
+          ) : (
+            <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900 mt-1">{formatCurrency(unit.rentAmount)}</p>
+          )}
           {hasPartPayment && (
             <p className="text-xs font-medium text-gray-700 mt-0.5">
               {t('Received')} {formatCurrency(unit.amountPaid)} · {t('{days} of {total} days', { days: unit.daysCovered, total: DAYS_PER_MONTH })}

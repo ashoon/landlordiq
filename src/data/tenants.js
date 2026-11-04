@@ -497,10 +497,11 @@ export function getDueSoonWindowDays(date = new Date()) {
  * Returns the payment status for a single tenant based on today's date.
  * Status is computed at runtime — never stored in JSON.
  *
- * @param {{ paidCurrentMonth: boolean, dueDate: string }} tenant
+ * @param {{ paidCurrentMonth: boolean, dueDate: string, priorArrears?: number }} tenant
  * @returns {'paid' | 'due-soon' | 'upcoming' | 'overdue'}
  */
 export function getStatusForTenant(tenant) {
+  if ((tenant.priorArrears ?? 0) > 0) return 'overdue'
   if (tenant.paidCurrentMonth) return 'paid'
 
   const today = new Date()
@@ -579,6 +580,67 @@ function normalizeOverride(value) {
 }
 
 /**
+ * Prior tracked months before `monthKey` (from trackingStart up to monthKey, exclusive), oldest first.
+ *
+ * @param {string} monthKey - "YYYY-MM"
+ * @returns {string[]}
+ */
+export function getPriorTrackedMonths(monthKey) {
+  const start = getTrackingStart()
+  if (monthKey <= start) return []
+  const [startY, startM] = start.split('-').map(Number)
+  const [endY, endM] = monthKey.split('-').map(Number)
+  const count = (endY - startY) * 12 + (endM - startM)
+  const months = []
+  for (let i = 0; i < count; i++) {
+    const d = new Date(startY, startM - 1 + i, 1)
+    const key = getMonthKey(d)
+    if (key < monthKey) months.push(key)
+  }
+  return months
+}
+
+/**
+ * Calculates prior unpaid months and total arrears for an occupant across prior tracked months.
+ */
+function getPriorUnpaidForTenant(unit, tenant, priorMonths, overrides, stored) {
+  if (priorMonths.length === 0) return { priorArrears: 0, priorUnpaidMonths: [] }
+  const tenantKey = tenant.payKey ?? unit.id
+  const unpaidMonths = []
+  let totalArrears = 0
+
+  for (const mKey of priorMonths) {
+    const tenancies = tenanciesFor(unit, stored)
+    const occ = findOccupant(unit, tenancies, mKey)
+    if (!occ) continue
+    const occKey = occ.tenant.payKey ?? unit.id
+    if (occKey !== tenantKey) continue
+
+    const override = normalizeOverride(overrides[`${mKey}:${tenantKey}`])
+    const paid = override?.paid ?? false
+    if (paid) continue
+
+    const entries = paymentEntries(override)
+    const received = entries.reduce((sum, p) => sum + p.amount, 0)
+    const amountPaid = Math.min(received, occ.tenant.rentAmount)
+    const balance = occ.tenant.rentAmount - amountPaid
+
+    if (balance > 0) {
+      totalArrears += balance
+      unpaidMonths.push({
+        month: mKey,
+        balance,
+        rentAmount: occ.tenant.rentAmount,
+        amountPaid,
+        dueDate: override?.dueDate ?? occ.dueDate,
+      })
+    }
+  }
+
+  return { priorArrears: totalArrears, priorUnpaidMonths: unpaidMonths }
+}
+
+/**
  * Sort comparator: overdue, due soon, upcoming, paid, then vacant (by address). Overdue and due soon run
  * by due date, oldest/soonest first (upcoming too); paid runs by most recent payment date first.
  */
@@ -589,7 +651,9 @@ function compareTenants(a, b) {
   if (a.status === 'paid') {
     return (b.paidDate || '').localeCompare(a.paidDate || '') || a.dueDate.localeCompare(b.dueDate)
   }
-  return a.dueDate.localeCompare(b.dueDate)
+  const dueA = a.priorUnpaidMonths?.[0]?.dueDate ?? a.dueDate
+  const dueB = b.priorUnpaidMonths?.[0]?.dueDate ?? b.dueDate
+  return dueA.localeCompare(dueB)
 }
 
 /**
@@ -634,6 +698,7 @@ export function sortByOrder(tenants, order) {
 export function getAllTenants(monthKey = getMonthKey()) {
   const overrides = getData('payments')
   const stored = readTenancies()
+  const priorMonths = getPriorTrackedMonths(monthKey)
 
   return getUnits()
     .map((unit) => {
@@ -652,6 +717,9 @@ export function getAllTenants(monthKey = getMonthKey()) {
       const entries = paymentEntries(override)
       const received = entries.reduce((sum, p) => sum + p.amount, 0)
       const amountPaid = paid ? tenant.rentAmount : Math.min(received, tenant.rentAmount)
+      const balance = tenant.rentAmount - amountPaid
+
+      const { priorArrears, priorUnpaidMonths } = getPriorUnpaidForTenant(unit, tenant, priorMonths, overrides, stored)
 
       const enriched = {
         ...tenant,
@@ -662,8 +730,11 @@ export function getAllTenants(monthKey = getMonthKey()) {
         paidDate,
         paymentLog: entries,
         amountPaid,
-        balance: tenant.rentAmount - amountPaid,
+        balance,
         daysCovered: daysCoveredBy(amountPaid, tenant.rentAmount),
+        priorArrears,
+        priorUnpaidMonths,
+        totalOwed: balance + priorArrears,
       }
       return { ...enriched, status: getStatusForTenant(enriched) }
     })

@@ -19,9 +19,9 @@ import ManageUnits from './ManageUnits.jsx'
 /**
  * Dashboard — orchestrates the filter state, search, unit card grid, and unit management section.
  *
- * @param {{ month: string, onStatsChange: () => void }} props
+ * @param {{ month: string, onStatsChange: () => void, onSelectMonth?: (month: string) => void }} props
  */
-export default function Dashboard({ month, onStatsChange }) {
+export default function Dashboard({ month, onStatsChange, onSelectMonth }) {
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   // refreshKey forces re-read from tenants.js (which reads the store) after a toggle
@@ -159,6 +159,7 @@ export default function Dashboard({ month, onStatsChange }) {
               onDueDateChange={handleDueDateChange}
               onBalanceDueDateChange={handleBalanceDueDateChange}
               onTargetMoveInChange={handleTargetMoveInChange}
+              onSelectMonth={onSelectMonth}
             />
           ))}
         </div>

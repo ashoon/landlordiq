@@ -107,4 +107,17 @@ export function capitalize(text) {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+/**
+ * Formats a month key ("YYYY-MM") as a short month name in the current language, e.g. "Oct" / "Oct".
+ *
+ * @param {string} monthKey - "YYYY-MM"
+ * @returns {string}
+ */
+export function formatMonthShort(monthKey) {
+  if (!monthKey) return ''
+  const [y, m] = monthKey.split('-').map(Number)
+  const d = new Date(y, m - 1, 1)
+  return capitalize(formatLocaleDate(d, { month: 'short' })).replace(/\.$/, '')
+}
+
 if (typeof document !== 'undefined') document.documentElement.lang = language
