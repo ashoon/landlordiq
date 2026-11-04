@@ -46,8 +46,17 @@ export default function UnitCard({
   const [paying, setPaying] = useState(false)
   const [amountText, setAmountText] = useState('')
   const [balanceDueText, setBalanceDueText] = useState('')
-  // Preview of the part payment being typed (days covered, balance); null until it is a valid amount
-  const preview = paying ? describePayment(unit.rentAmount, unit.amountPaid, milToAmount(amountText)) : null
+  const totalOwed = unit.status !== 'vacant' ? (unit.totalOwed ?? unit.balance + (unit.priorArrears ?? 0)) : 0
+  // Preview of the payment being typed (waterfall across past-due months first, then current month)
+  const preview = paying
+    ? describePayment(
+        unit.rentAmount,
+        unit.amountPaid,
+        milToAmount(amountText),
+        unit.priorArrears ?? 0,
+        unit.priorUnpaidMonths ?? []
+      )
+    : null
   const hasPartPayment = unit.status !== 'vacant' && unit.status !== 'paid' && unit.amountPaid > 0
 
   const statusStyles = {
@@ -325,13 +334,21 @@ export default function UnitCard({
           <button
             onClick={() => {
               setPaying(false)
-              // With part payments in, the balance is logged as a dated payment so the list adds up to the rent
-              if (unit.paymentLog.length > 0) onRecordPayment(unit.id, unit.balance)
-              else onTogglePaid(unit.id, true)
+              if (unit.priorArrears > 0) {
+                onRecordPayment(unit.id, totalOwed)
+              } else if (unit.paymentLog.length > 0) {
+                onRecordPayment(unit.id, unit.balance)
+              } else {
+                onTogglePaid(unit.id, true)
+              }
             }}
             className="text-xs font-medium px-2 py-1 rounded-md border border-green-500 bg-green-500 text-white hover:bg-green-600"
           >
-            {unit.balance < unit.rentAmount ? `${t('Pay balance')} ${formatCurrency(unit.balance)}` : t('Paid in full')}
+            {unit.priorArrears > 0
+              ? `${t('Pay total owed')} ${formatCurrency(totalOwed)}`
+              : unit.balance < unit.rentAmount
+                ? `${t('Pay balance')} ${formatCurrency(unit.balance)}`
+                : t('Paid in full')}
           </button>
           <label className="text-xs text-gray-600">
             {t('Or part payment (COP mil)')}
@@ -349,9 +366,31 @@ export default function UnitCard({
           </label>
           {preview && (
             <p className="text-xs text-gray-700">
-              {preview.complete
-                ? t('Covers the full rent')
-                : `${t('{days} of {total} days', { days: preview.days, total: DAYS_PER_MONTH })} · ${t('balance')} ${formatCurrency(preview.balance)}`}
+              {unit.priorArrears > 0 ? (
+                preview.complete ? (
+                  t('Covers all past-due rent and this month in full')
+                ) : preview.priorPaid > 0 && preview.currentPaid > 0 ? (
+                  t('Pays {prior} to past-due months + {current} to this month · balance {balance}', {
+                    prior: formatCurrency(preview.priorPaid),
+                    current: formatCurrency(preview.currentPaid),
+                    balance: formatCurrency(preview.balance),
+                  })
+                ) : preview.priorPaid === unit.priorArrears ? (
+                  t("Covers all past-due rent ({prior}) · this month's balance {balance}", {
+                    prior: formatCurrency(preview.priorPaid),
+                    balance: formatCurrency(preview.balance),
+                  })
+                ) : (
+                  t('Pays {prior} to past-due rent · remaining total balance {balance}', {
+                    prior: formatCurrency(preview.priorPaid),
+                    balance: formatCurrency(preview.balance),
+                  })
+                )
+              ) : preview.complete ? (
+                t('Covers the full rent')
+              ) : (
+                `${t('{days} of {total} days', { days: preview.days, total: DAYS_PER_MONTH })} · ${t('balance')} ${formatCurrency(preview.balance)}`
+              )}
             </p>
           )}
           {preview && !preview.complete && (

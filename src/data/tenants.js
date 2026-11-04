@@ -547,14 +547,38 @@ export function daysCoveredBy(amountPaid, rentAmount) {
  * @param {number} amount - the new payment (whole pesos)
  * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null} null when `amount` isn't a positive number
  */
-export function describePayment(rentAmount, alreadyPaid, amount) {
+export function describePayment(rentAmount, alreadyPaid, amount, priorArrears = 0, priorUnpaidMonths = []) {
   if (!(amount > 0)) return null
+
+  if (priorArrears > 0) {
+    const currentBalance = Math.max(0, rentAmount - (alreadyPaid ?? 0))
+    const totalOwed = priorArrears + currentBalance
+    const totalPaid = Math.min(totalOwed, amount)
+    const remainingBalance = totalOwed - totalPaid
+    const priorPaid = Math.min(amount, priorArrears)
+    const currentPortion = Math.max(0, amount - priorArrears)
+    const currentTotal = Math.min(rentAmount, (alreadyPaid ?? 0) + currentPortion)
+
+    return {
+      totalPaid,
+      balance: remainingBalance,
+      priorPaid,
+      currentPaid: currentPortion,
+      days: daysCoveredBy(currentTotal, rentAmount),
+      complete: totalPaid >= totalOwed,
+      priorArrears,
+      priorUnpaidMonths,
+    }
+  }
+
   const totalPaid = Math.min(rentAmount, (alreadyPaid ?? 0) + amount)
   return {
     totalPaid,
     balance: rentAmount - totalPaid,
     days: daysCoveredBy(totalPaid, rentAmount),
     complete: totalPaid >= rentAmount,
+    priorPaid: 0,
+    currentPaid: totalPaid,
   }
 }
 
@@ -835,6 +859,22 @@ function readPayment(overrides, id, monthKey) {
  */
 export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
   const overrides = getData('payments')
+  if (paid) {
+    const tenants = getAllTenants(monthKey)
+    const tenant = tenants.find((t) => t.id === id)
+    if (tenant && tenant.priorUnpaidMonths?.length > 0) {
+      for (const prior of tenant.priorUnpaidMonths) {
+        const { amountPaid: _total, balanceDue: _due, payments: history, ...currentPrior } =
+          readPayment(overrides, id, prior.month) ?? {}
+        if (history?.length) currentPrior.payments = history
+        overrides[paymentKey(id, prior.month)] = {
+          ...currentPrior,
+          paid: true,
+          paidDate: toIso(new Date()),
+        }
+      }
+    }
+  }
   const { amountPaid: _total, balanceDue: _due, payments: history, ...current } = readPayment(overrides, id, monthKey) ?? {}
   if (paid && history?.length) current.payments = history
   overrides[paymentKey(id, monthKey)] = { ...current, paid, paidDate: paid ? toIso(new Date()) : null }
@@ -852,44 +892,83 @@ export function validatePartPayment(amount) {
   return null
 }
 
+/** Records money received towards a single month's rent. Modifies `overrides` in place. */
+function recordSingleMonthPayment(overrides, id, amount, monthKey, date, balanceDueDate = '') {
+  if (!(amount > 0)) return
+  const unit = getUnits().find((u) => u.id === id)
+  const tenancies = tenanciesFor(unit, readTenancies())
+  const occupant = unit && findOccupant(unit, tenancies, monthKey)
+  if (!occupant) return
+
+  const rentAmount = occupant.tenant.rentAmount
+  const stored = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
+  const { amountPaid: _total, balanceDue: keptDue, ...current } = stored
+  const earlier = paymentEntries(stored).map((p) => (p.id === 'legacy' ? { ...p, id: `legacy-${monthKey}` } : p))
+  const currentPaid = stored.paid ? rentAmount : earlier.reduce((sum, p) => sum + p.amount, 0)
+  const newTotal = Math.min(rentAmount, currentPaid + amount)
+  const actualAdded = newTotal - currentPaid
+
+  if (actualAdded <= 0 && stored.paid) return
+
+  const entry = {
+    id: `P${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    amount: actualAdded,
+    date,
+  }
+  const payments = [...earlier, entry]
+
+  if (newTotal >= rentAmount) {
+    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: true, paidDate: date }
+  } else {
+    const due = balanceDueDate || keptDue
+    overrides[paymentKey(id, monthKey)] = {
+      ...current,
+      payments,
+      paid: false,
+      paidDate: null,
+      ...(due ? { balanceDue: due } : {}),
+    }
+  }
+}
+
 /**
- * Records money received towards a month's rent without necessarily paying it in full. Each payment is
- * saved as its own dated entry (`paymentLog` on the unit's row) and amounts add up. The amount that would
- * go over the rent is not recorded. When the total reaches the rent the month is marked paid (today's
- * date); otherwise the unit stays unpaid with `amountPaid` / `balance` / `daysCovered` filled in.
+ * Records money received towards a tenant's rent, applying it first to any outstanding prior months
+ * in chronological order (oldest first), then to the selected month.
  *
  * @param {string} id - Tenant ID (e.g. "T01")
  * @param {number} amount - whole pesos received now
  * @param {string} [monthKey] - defaults to the current month
  * @param {string} [date] - ISO date received, defaults to today
- * @param {string} [balanceDueDate] - ISO date the remaining balance is expected; empty keeps any earlier one.
- *   Dropped once the month is paid in full.
- * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null} the result, or null when nothing was recorded
+ * @param {string} [balanceDueDate] - ISO date the remaining balance is expected
+ * @returns {{ totalPaid: number, balance: number, days: number, complete: boolean } | null}
  */
 export function recordPartialPayment(id, amount, monthKey = getMonthKey(), date = toIso(new Date()), balanceDueDate = '') {
   if (validatePartPayment(amount) || validateDate(date) || (balanceDueDate && validateDate(balanceDueDate))) return null
-  const tenant = getAllTenants(monthKey).find((t) => t.id === id)
+  const tenants = getAllTenants(monthKey)
+  const tenant = tenants.find((t) => t.id === id)
   if (!tenant || tenant.status === 'vacant') return null
 
-  const result = describePayment(tenant.rentAmount, tenant.amountPaid, amount)
+  const result = describePayment(tenant.rentAmount, tenant.amountPaid, amount, tenant.priorArrears, tenant.priorUnpaidMonths)
   const overrides = getData('payments')
-  const stored = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
-  const { amountPaid: _total, balanceDue: keptDue, ...current } = stored
-  // Keep older total-only records in the list (undated, shown as "Earlier") so they aren't lost
-  const earlier = paymentEntries(stored).map((p) => (p.id === 'legacy' ? { ...p, id: `legacy-${monthKey}` } : p))
-  const entry = {
-    id: `P${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-    amount: result.totalPaid - tenant.amountPaid,
-    date,
-  }
-  const payments = [...earlier, entry]
 
-  if (result.complete) {
-    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: true, paidDate: date }
-  } else {
-    const due = balanceDueDate || keptDue
-    overrides[paymentKey(id, monthKey)] = { ...current, payments, paid: false, paidDate: null, ...(due ? { balanceDue: due } : {}) }
+  let remaining = amount
+  const priorMonths = tenant.priorUnpaidMonths ?? []
+
+  // 1. Apply to prior unpaid months (oldest first)
+  for (const prior of priorMonths) {
+    if (remaining <= 0) break
+    const toApply = Math.min(remaining, prior.balance)
+    recordSingleMonthPayment(overrides, id, toApply, prior.month, date, '')
+    remaining -= toApply
   }
+
+  // 2. Apply any remainder to the current month
+  if (remaining > 0 && (!tenant.paidCurrentMonth || tenant.balance > 0)) {
+    const toApply = Math.min(remaining, tenant.balance)
+    recordSingleMonthPayment(overrides, id, toApply, monthKey, date, balanceDueDate)
+    remaining -= toApply
+  }
+
   setData('payments', overrides)
   return result
 }

@@ -70,7 +70,15 @@ export default {
   'Mark as Unpaid': 'Marcar como no pagado',
   'Record payment': 'Registrar pago',
   'Pay balance': 'Pagar saldo',
+  'Pay total owed': 'Pagar total adeudado',
   'Paid in full': 'Pagado completo',
+  'Covers all past-due rent and this month in full': 'Cubre todo el arriendo vencido y este mes completo',
+  'Pays {prior} to past-due months + {current} to this month · balance {balance}':
+    'Abona {prior} a meses vencidos + {current} a este mes · saldo {balance}',
+  "Covers all past-due rent ({prior}) · this month's balance {balance}":
+    'Cubre todo el arriendo vencido ({prior}) · saldo de este mes {balance}',
+  'Pays {prior} to past-due rent · remaining total balance {balance}':
+    'Abona {prior} al arriendo vencido · saldo total restante {balance}',
   'Or part payment (COP mil)': 'O pago parcial (COP mil)',
   'Part payment in COP mil': 'Pago parcial en COP mil',
   'e.g. 250': 'ej. 250',
