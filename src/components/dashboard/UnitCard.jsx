@@ -46,6 +46,9 @@ export default function UnitCard({
   const [paying, setPaying] = useState(false)
   const [amountText, setAmountText] = useState('')
   const [balanceDueText, setBalanceDueText] = useState('')
+  const days = unit.dueDate ? getDaysRelative(unit.dueDate) : null
+  const isCurrentMonthDue = days !== null && days < 0
+  const isPastDueOnly = (unit.priorArrears ?? 0) > 0 && !isCurrentMonthDue
   const totalOwed = unit.status !== 'vacant' ? (unit.totalOwed ?? unit.balance + (unit.priorArrears ?? 0)) : 0
   // Preview of the payment being typed (waterfall across past-due months first, then current month)
   const preview = paying
@@ -167,7 +170,7 @@ export default function UnitCard({
       </div>
 
       {unit.status !== 'vacant' && unit.priorArrears > 0 && (
-        <div className="flex flex-col gap-1 rounded-lg border border-red-300 bg-red-100/90 p-2 text-xs text-red-900">
+        <div className="flex flex-col gap-1 rounded-lg border border-red-500/30 bg-red-100 p-2 text-xs text-red-800">
           <div className="flex items-center gap-1.5 font-semibold">
             <span aria-hidden="true">⚠️</span>
             <span>
@@ -190,7 +193,7 @@ export default function UnitCard({
                   key={u.month}
                   type="button"
                   onClick={() => onSelectMonth(u.month)}
-                  className="font-medium underline hover:text-red-950 transition-colors text-xs text-left"
+                  className="font-medium underline hover:text-red-600 transition-colors text-xs text-left"
                 >
                   {t('View {month} →', { month: formatMonthShort(u.month) })}
                 </button>
@@ -228,20 +231,30 @@ export default function UnitCard({
         <div>
           <p className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">{unit.tenantName}</p>
           {unit.phone && <p className="text-xs text-gray-500">{unit.phone}</p>}
-          {unit.priorArrears > 0 ? (
+          {unit.priorArrears > 0 && isCurrentMonthDue ? (
             <div className="mt-1">
               <p className="text-lg sm:text-2xl font-bold tracking-tight text-red-600">
                 {formatCurrency(unit.totalOwed ?? unit.balance + unit.priorArrears)}
               </p>
               <p className="text-xs font-medium text-gray-600">
-                {unit.paidCurrentMonth
-                  ? t('Total owed: {arrears} past-due (this month paid)', {
-                      arrears: formatCurrency(unit.priorArrears),
-                    })
-                  : t('Total owed: {arrears} past-due + {current} this month', {
-                      arrears: formatCurrency(unit.priorArrears),
-                      current: formatCurrency(unit.balance),
-                    })}
+                {t('Total overdue: {total} ({arrears} past-due + {current} this month)', {
+                  total: formatCurrency(unit.totalOwed ?? unit.balance + unit.priorArrears),
+                  arrears: formatCurrency(unit.priorArrears),
+                  current: formatCurrency(unit.balance),
+                })}
+              </p>
+            </div>
+          ) : unit.priorArrears > 0 ? (
+            <div className="mt-1">
+              <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900">
+                {formatCurrency(unit.rentAmount)}
+              </p>
+              <p className="text-xs font-semibold text-red-600">
+                {formatCurrency(unit.priorArrears)}{' '}
+                {unit.priorUnpaidMonths?.[0]
+                  ? t('past due from {month}', { month: formatMonthShort(unit.priorUnpaidMonths[0].month) })
+                  : t('Past-due balance')}
+                {unit.paidCurrentMonth ? ` (${t('this month paid')})` : ''}
               </p>
             </div>
           ) : (
@@ -334,7 +347,9 @@ export default function UnitCard({
           <button
             onClick={() => {
               setPaying(false)
-              if (unit.priorArrears > 0) {
+              if (isPastDueOnly) {
+                onRecordPayment(unit.id, unit.priorArrears)
+              } else if (unit.priorArrears > 0) {
                 onRecordPayment(unit.id, totalOwed)
               } else if (unit.paymentLog.length > 0) {
                 onRecordPayment(unit.id, unit.balance)
@@ -344,11 +359,13 @@ export default function UnitCard({
             }}
             className="text-xs font-medium px-2 py-1 rounded-md border border-green-500 bg-green-500 text-white hover:bg-green-600"
           >
-            {unit.priorArrears > 0
-              ? `${t('Pay total owed')} ${formatCurrency(totalOwed)}`
-              : unit.balance < unit.rentAmount
-                ? `${t('Pay balance')} ${formatCurrency(unit.balance)}`
-                : t('Paid in full')}
+            {isPastDueOnly
+              ? `${t('Pay past-due balance')} ${formatCurrency(unit.priorArrears)}`
+              : unit.priorArrears > 0
+                ? `${t('Pay total owed')} ${formatCurrency(totalOwed)}`
+                : unit.balance < unit.rentAmount
+                  ? `${t('Pay balance')} ${formatCurrency(unit.balance)}`
+                  : t('Paid in full')}
           </button>
           <label className="text-xs text-gray-600">
             {t('Or part payment (COP mil)')}
