@@ -262,6 +262,11 @@ export default function UnitCard({
                 {unit.paidCurrentMonth ? ` (${t('this month paid')})` : ''}
               </p>
             </div>
+          ) : unit.isLoan && unit.monthlyAmount === 0 && !unit.isCapitalMonth ? (
+            <div className="mt-1">
+              <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900">{formatCurrency(0)}</p>
+              <p className="text-xs font-medium text-gray-500">{t('Zero interest')}</p>
+            </div>
           ) : (
             <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900 mt-1">{formatCurrency(unit.rentAmount)}</p>
           )}
@@ -269,6 +274,7 @@ export default function UnitCard({
             <div className="text-xs text-gray-600 mt-1 space-y-0.5">
               <p>
                 <strong className="text-gray-900">{t('Capital')}:</strong> {formatCurrency(unit.principalAmount)}
+                {unit.isCapitalMonth && <span className="ml-1 text-brand-600 font-semibold">({t('Capital Repayment Due')})</span>}
               </p>
               {unit.capitalDueDate && (
                 <p>

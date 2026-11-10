@@ -63,10 +63,10 @@ export function validateLoan(fields) {
   if (!Number.isFinite(fields.principalAmount) || fields.principalAmount <= 0) {
     return t('Enter a valid principal / capital amount.')
   }
-  if (!Number.isFinite(fields.monthlyAmount) || fields.monthlyAmount <= 0) {
-    return t('Enter a valid monthly payment amount.')
+  if (!Number.isFinite(fields.monthlyAmount) || fields.monthlyAmount < 0) {
+    return t('Enter a valid monthly payment amount (0 or more).')
   }
-  const day = Number(fields.dueDay)
+  const day = Number(fields.dueDay ?? 30)
   if (!Number.isInteger(day) || day < 1 || day > 31) {
     return t('Enter a valid due day (1–31).')
   }
@@ -232,23 +232,28 @@ function getPriorUnpaidForLoan(loan, priorMonths, overrides) {
   for (const mKey of priorMonths) {
     if (loanStartMonth && mKey < loanStartMonth) continue
 
+    const isCapitalMonth = loan.capitalDueDate && loan.capitalDueDate.slice(0, 7) === mKey
+    const targetAmount = isCapitalMonth ? loan.principalAmount + (loan.monthlyAmount ?? 0) : (loan.monthlyAmount ?? 0)
+
+    if (targetAmount === 0) continue
+
     const override = readLoanPayment(overrides, loan.id, mKey)
     const paid = override?.paid ?? false
     if (paid) continue
 
     const entries = loanPaymentEntries(override)
     const received = entries.reduce((sum, p) => sum + p.amount, 0)
-    const amountPaid = Math.min(received, loan.monthlyAmount)
-    const balance = loan.monthlyAmount - amountPaid
+    const amountPaid = Math.min(received, targetAmount)
+    const balance = targetAmount - amountPaid
 
     if (balance > 0) {
       totalArrears += balance
       unpaidMonths.push({
         month: mKey,
         balance,
-        rentAmount: loan.monthlyAmount,
+        rentAmount: targetAmount,
         amountPaid,
-        dueDate: override?.dueDate ?? getLoanDueDate(loan, mKey),
+        dueDate: override?.dueDate ?? (isCapitalMonth ? loan.capitalDueDate : getLoanDueDate(loan, mKey)),
       })
     }
   }
@@ -276,26 +281,32 @@ export function getLoanRowsForMonth(monthKey = getMonthKey()) {
       return !startMonth || startMonth <= monthKey
     })
     .map((loan) => {
+      const isCapitalMonth = Boolean(loan.capitalDueDate && loan.capitalDueDate.slice(0, 7) === monthKey)
+      const targetAmount = isCapitalMonth
+        ? loan.principalAmount + (loan.monthlyAmount ?? 0)
+        : (loan.monthlyAmount ?? 0)
+
       const override = readLoanPayment(overrides, loan.id, monthKey)
-      const defaultDueDate = getLoanDueDate(loan, monthKey)
+      const defaultDueDate = isCapitalMonth ? loan.capitalDueDate : getLoanDueDate(loan, monthKey)
       const dueDate = override?.dueDate ?? defaultDueDate
-      const paid = override?.paid ?? false
-      const paidDate = paid ? override.paidDate : null
+      const paid = targetAmount === 0 ? true : (override?.paid ?? false)
+      const paidDate = paid ? (override?.paidDate ?? (targetAmount === 0 ? loan.startDate : null)) : null
 
       const entries = loanPaymentEntries(override)
       const received = entries.reduce((sum, p) => sum + p.amount, 0)
-      const amountPaid = paid ? loan.monthlyAmount : Math.min(received, loan.monthlyAmount)
-      const balance = loan.monthlyAmount - amountPaid
+      const amountPaid = paid ? targetAmount : Math.min(received, targetAmount)
+      const balance = targetAmount - amountPaid
 
       const { priorArrears, priorUnpaidMonths } = getPriorUnpaidForLoan(loan, priorMonths, overrides)
 
       const enriched = {
         id: loan.id,
         isLoan: true,
+        isCapitalMonth,
         address: loan.borrowerName,
         tenantName: loan.borrowerName,
         phone: loan.phone,
-        rentAmount: loan.monthlyAmount,
+        rentAmount: targetAmount,
         principalAmount: loan.principalAmount,
         monthlyAmount: loan.monthlyAmount,
         dueDay: loan.dueDay,
@@ -308,7 +319,7 @@ export function getLoanRowsForMonth(monthKey = getMonthKey()) {
         paymentLog: entries,
         amountPaid,
         balance,
-        daysCovered: daysCoveredBy(amountPaid, loan.monthlyAmount),
+        daysCovered: daysCoveredBy(amountPaid, targetAmount || 1),
         priorArrears,
         priorUnpaidMonths,
         totalOwed: balance + priorArrears,

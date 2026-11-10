@@ -92,8 +92,11 @@ export default function ManageLoans({ onChange }) {
   function handleSave(e) {
     e.preventDefault()
     const principal = milToAmount(form.principalMil)
-    const monthly = milToAmount(form.monthlyMil)
-    const dueDay = Number(form.dueDay)
+    const monthly =
+      form.monthlyMil === '' || form.monthlyMil === '0' || Number(form.monthlyMil) === 0
+        ? 0
+        : milToAmount(form.monthlyMil)
+    const dueDay = Number(form.dueDay || 30)
 
     const payload = {
       borrowerName: form.borrowerName,
@@ -228,16 +231,15 @@ export default function ManageLoans({ onChange }) {
                   />
                 </label>
                 <label className="text-xs font-medium text-gray-700">
-                  {t('Monthly Payment / Interest (COP mil)')} *
+                  {t('Monthly Payment / Interest (COP mil, 0 for zero interest)')}
                   <input
                     type="number"
                     step="5"
                     min="0"
-                    required
                     value={form.monthlyMil}
                     onChange={(e) => setForm({ ...form, monthlyMil: e.target.value })}
                     className={inputCls}
-                    placeholder={t('e.g. 350')}
+                    placeholder={t('e.g. 350 or 0')}
                   />
                 </label>
                 <label className="text-xs font-medium text-gray-700">
@@ -354,15 +356,15 @@ export default function ManageLoans({ onChange }) {
                           />
                         </label>
                         <label className="text-xs font-medium text-gray-700">
-                          {t('Monthly Payment / Interest (COP mil)')} *
+                          {t('Monthly Payment / Interest (COP mil, 0 for zero interest)')}
                           <input
                             type="number"
                             step="5"
                             min="0"
-                            required
                             value={form.monthlyMil}
                             onChange={(e) => setForm({ ...form, monthlyMil: e.target.value })}
                             className={inputCls}
+                            placeholder={t('e.g. 350 or 0')}
                           />
                         </label>
                         <label className="text-xs font-medium text-gray-700">
@@ -453,7 +455,9 @@ export default function ManageLoans({ onChange }) {
                         </span>
                         <span>
                           <strong className="text-gray-900">{t('Monthly payment')}:</strong>{' '}
-                          {formatCurrency(loan.monthlyAmount)} ({t('Due day')}: {ordinal(loan.dueDay)})
+                          {loan.monthlyAmount === 0
+                            ? `COP 0 (${t('Zero interest')})`
+                            : `${formatCurrency(loan.monthlyAmount)} (${t('Due day')}: ${ordinal(loan.dueDay)})`}
                         </span>
                         {loan.startDate && (
                           <span>
