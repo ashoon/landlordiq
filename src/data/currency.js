@@ -58,6 +58,17 @@ export function milToAmount(mil) {
 }
 
 /**
+ * Converts whole pesos to "mil" (thousands) for inputs: 450000 -> 450.
+ *
+ * @param {number} amount
+ * @returns {number}
+ */
+export function amountToMil(amount) {
+  if (!Number.isFinite(amount)) return NaN
+  return Math.round(amount) / 1000
+}
+
+/**
  * Formats an amount in thousands with its unit inline: 16545000 -> "COP 16,545 mil".
  *
  * @param {number} amount

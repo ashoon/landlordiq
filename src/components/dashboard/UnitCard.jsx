@@ -154,6 +154,11 @@ export default function UnitCard({
           {unit.address}
         </span>
         <span className="flex items-center gap-1">
+          {unit.isLoan && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800">
+              {t('Loan')}
+            </span>
+          )}
           {watchText && (
             <span
               title={watchText}
@@ -260,6 +265,18 @@ export default function UnitCard({
           ) : (
             <p className="text-lg sm:text-2xl font-bold tracking-tight text-gray-900 mt-1">{formatCurrency(unit.rentAmount)}</p>
           )}
+          {unit.isLoan && (
+            <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+              <p>
+                <strong className="text-gray-900">{t('Capital')}:</strong> {formatCurrency(unit.principalAmount)}
+              </p>
+              {unit.capitalDueDate && (
+                <p>
+                  <strong className="text-gray-900">{t('Capital due')}:</strong> {formatDueDate(unit.capitalDueDate)}
+                </p>
+              )}
+            </div>
+          )}
           {hasPartPayment && (
             <p className="text-xs font-medium text-gray-700 mt-0.5">
               {t('Received')} {formatCurrency(unit.amountPaid)} · {t('{days} of {total} days', { days: unit.daysCovered, total: DAYS_PER_MONTH })}
@@ -316,8 +333,9 @@ export default function UnitCard({
         </div>
       )}
 
-      {(notes.length > 0 || services.length > 0) && (
+      {(notes.length > 0 || services.length > 0 || (unit.isLoan && unit.note)) && (
         <div className="text-xs text-gray-500 break-words">
+          {unit.isLoan && unit.note && <p className="italic">{unit.note}</p>}
           {notes.map((note) => (
             <p key={note}>{note}</p>
           ))}

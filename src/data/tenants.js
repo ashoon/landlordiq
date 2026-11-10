@@ -13,12 +13,12 @@ const STATUS_ORDER = { overdue: 0, 'due-soon': 1, upcoming: 2, paid: 3, vacant: 
 const pad = (n) => String(n).padStart(2, '0')
 
 /** Parses an ISO "YYYY-MM-DD" string as a local-time date (avoids UTC off-by-one). */
-function parseLocalDate(iso) {
+export function parseLocalDate(iso) {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
 
-function toIso(date) {
+export function toIso(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
@@ -668,7 +668,7 @@ function getPriorUnpaidForTenant(unit, tenant, priorMonths, overrides, stored) {
  * Sort comparator: overdue, due soon, upcoming, paid, then vacant (by address). Overdue and due soon run
  * by due date, oldest/soonest first (upcoming too); paid runs by most recent payment date first.
  */
-function compareTenants(a, b) {
+export function compareTenants(a, b) {
   const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
   if (byStatus) return byStatus
   if (a.status === 'vacant') return compareAddress(a, b)

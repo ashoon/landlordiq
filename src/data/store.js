@@ -15,6 +15,7 @@ const SPECS = {
   payments: { key: 'landlordiq_payments', array: false },
   expenses: { key: 'landlordiq_expenses', array: true },
   taxes: { key: 'landlordiq_taxes', array: true },
+  loans: { key: 'landlordiq_loans', array: true },
 }
 
 const NAMES = Object.keys(SPECS)
