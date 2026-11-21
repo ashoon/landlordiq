@@ -265,8 +265,12 @@ tile in place after a part payment.
 
 - **Balance expected by:** a part payment can carry a date the rest is promised (`recordPartialPayment(..., balanceDueDate)`,
   or `setBalanceDueDate` to edit it). Stored as `balanceDue` on the payment override, exposed as `balanceDueDate` on the row
-  (only while unpaid with at least one part payment). Information only: it turns red on the card once passed but never changes
-  status, due date or totals. Marking paid/unpaid clears it; paying in full drops it.
+  (only while unpaid with at least one part payment). The part-payment form pre-fills it (`getSuggestedBalanceDate`: days
+  covered, counted from the due date or today if later). While it is later than the due date and not yet passed, status, sort
+  order and "days remaining" use it instead of the due date (`getStatusDate`, row field `statusDate`); the real `dueDate` is
+  never changed, so insights and payment history still see the original date. Once it passes unpaid the card is overdue again
+  and the date turns red. Marking paid/unpaid clears it; paying in full drops it.
+- **Moving out tag:** rows expose `moveOutDate`; `UnitCard.jsx` shows a neutral sky "Moving out <date>" tag. It never changes status.
 - **Target move-in:** `units.added[].targetMoveIn` (`setTargetMoveIn`), editable on a vacant tile while no move-in is scheduled;
   cleared by `moveInUnit`. The vacant tile already shows days vacant (from the last move-out).
 - **Notes:** `unitNote` lives on the unit (stays with the address), `tenantNote` on the tenancy (goes with the tenant). Both are

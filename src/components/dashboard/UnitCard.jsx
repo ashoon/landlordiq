@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { getDaysRelative, formatDueDate, getTodayIso, describePayment, DAYS_PER_MONTH } from '../../data/tenants.js'
+import {
+  getDaysRelative,
+  formatDueDate,
+  getTodayIso,
+  describePayment,
+  getSuggestedBalanceDate,
+  DAYS_PER_MONTH,
+} from '../../data/tenants.js'
 import { formatCurrency, milToAmount } from '../../data/currency.js'
 import { t, formatMonthShort } from '../../data/i18n.js'
 import EditableDate from './EditableDate.jsx'
@@ -12,8 +19,10 @@ import EditableDate from './EditableDate.jsx'
  * one opens a date field for it (see EditableDate).
  * "Mark as Paid" opens a small panel: pay the full rent, or record a part payment (entered in COP mil),
  * which shows how many days of the month it covers (see DAYS_PER_MONTH) and the balance still owed.
- * A part payment can also carry a "balance expected by" date, shown (and editable) under the balance;
- * it turns red once passed but never changes the status.
+ * A part payment can also carry a "balance expected by" date, shown (and editable) under the balance. The form
+ * pre-fills it with the days the payment covers, counted from the due date (or today if later). While that date lies ahead the status is
+ * measured against it instead of the due date (the real due date is unchanged); it turns red once passed.
+ * A tenant with a move-out date gets a neutral "Moving out" tag (sky); it never changes the status.
  * A vacant tile shows an editable target move-in date until a move-in is scheduled; unit and tenant
  * notes and the services the tenant pays separately (edited in Manage Units) are shown at the bottom of the tile.
  *
@@ -45,7 +54,8 @@ export default function UnitCard({
 }) {
   const [paying, setPaying] = useState(false)
   const [amountText, setAmountText] = useState('')
-  const [balanceDueText, setBalanceDueText] = useState('')
+  // null = untouched, so the suggested date shows; a string = what the user picked or cleared
+  const [balanceDueText, setBalanceDueText] = useState(null)
   const days = unit.dueDate ? getDaysRelative(unit.dueDate) : null
   const isCurrentMonthDue = days !== null && days < 0
   const isPastDueOnly = (unit.priorArrears ?? 0) > 0 && !isCurrentMonthDue
@@ -60,6 +70,9 @@ export default function UnitCard({
         unit.priorUnpaidMonths ?? []
       )
     : null
+  const suggestedBalanceDate =
+    preview && !preview.complete && !(unit.priorArrears > 0) ? getSuggestedBalanceDate(unit.dueDate, preview.days) : ''
+  const balanceDueValue = balanceDueText ?? suggestedBalanceDate
   const hasPartPayment = unit.status !== 'vacant' && unit.status !== 'paid' && unit.amountPaid > 0
 
   const statusStyles = {
@@ -107,7 +120,7 @@ export default function UnitCard({
         cls: 'text-red-600',
       }
     }
-    const days = getDaysRelative(unit.dueDate)
+    const days = getDaysRelative(unit.statusDate ?? unit.dueDate)
     if (days < 0) {
       const n = Math.abs(days)
       return { text: n === 1 ? t('1 day overdue') : t('{n} days overdue', { n }), cls: 'text-red-600' }
@@ -157,6 +170,14 @@ export default function UnitCard({
           {unit.isLoan && (
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800">
               {t('Loan')}
+            </span>
+          )}
+          {unit.status !== 'vacant' && unit.moveOutDate && (
+            <span
+              title={`${t('Moving out')} ${formatDueDate(unit.moveOutDate)}`}
+              className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800"
+            >
+              {t('Moving out')} {formatDueDate(unit.moveOutDate)}
             </span>
           )}
           {watchText && (
@@ -439,7 +460,7 @@ export default function UnitCard({
               {t('Balance expected by (optional)')}
               <input
                 type="date"
-                value={balanceDueText}
+                value={balanceDueValue}
                 onChange={(e) => setBalanceDueText(e.target.value)}
                 aria-label={`${t('Balance expected by')}, ${unit.tenantName}`}
                 className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -450,10 +471,10 @@ export default function UnitCard({
             <button
               disabled={!preview}
               onClick={() => {
-                onRecordPayment(unit.id, milToAmount(amountText), balanceDueText)
+                onRecordPayment(unit.id, milToAmount(amountText), balanceDueValue)
                 setPaying(false)
                 setAmountText('')
-                setBalanceDueText('')
+                setBalanceDueText(null)
               }}
               className="flex-1 text-xs font-medium px-2 py-1 rounded border border-gray-400 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -463,7 +484,7 @@ export default function UnitCard({
               onClick={() => {
                 setPaying(false)
                 setAmountText('')
-                setBalanceDueText('')
+                setBalanceDueText(null)
               }}
               className="flex-1 text-xs font-medium px-2 py-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
             >

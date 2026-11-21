@@ -494,10 +494,40 @@ export function getDueSoonWindowDays(date = new Date()) {
 }
 
 /**
- * Returns the payment status for a single tenant based on today's date.
- * Status is computed at runtime — never stored in JSON.
+ * The date the status is measured against. Normally the due date; while a part-paid month has a promised
+ * "balance expected by" date that is later than the due date and not yet passed, that date instead.
+ * The real due date is never changed (insights and payment history still use it).
  *
- * @param {{ paidCurrentMonth: boolean, dueDate: string, priorArrears?: number }} tenant
+ * @param {{ paidCurrentMonth: boolean, dueDate: string, balanceDueDate?: string | null }} tenant
+ * @returns {string} ISO date
+ */
+export function getStatusDate(tenant) {
+  const promised = tenant.balanceDueDate
+  if (!tenant.paidCurrentMonth && promised && promised > tenant.dueDate && getDaysRelative(promised) >= 0) return promised
+  return tenant.dueDate
+}
+
+/**
+ * Suggests the "balance expected by" date after a part payment: the days the payment covers, counted
+ * from the due date, or from today when the due date has already passed (50% paid → 15 days later).
+ *
+ * @param {string} dueDate - ISO date
+ * @param {number} daysCovered - see daysCoveredBy()
+ * @returns {string} ISO date
+ */
+export function getSuggestedBalanceDate(dueDate, daysCovered) {
+  const start = getTodayIso() > dueDate ? getTodayIso() : dueDate
+  const date = parseLocalDate(start)
+  date.setDate(date.getDate() + daysCovered)
+  return toIso(date)
+}
+
+/**
+ * Returns the payment status for a single tenant based on today's date.
+ * Status is computed at runtime — never stored in JSON. A promised balance date (see getStatusDate)
+ * stands in for the due date while it lies ahead.
+ *
+ * @param {{ paidCurrentMonth: boolean, dueDate: string, balanceDueDate?: string | null, priorArrears?: number }} tenant
  * @returns {'paid' | 'due-soon' | 'upcoming' | 'overdue'}
  */
 export function getStatusForTenant(tenant) {
@@ -507,7 +537,7 @@ export function getStatusForTenant(tenant) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const due = parseLocalDate(tenant.dueDate)
+  const due = parseLocalDate(getStatusDate(tenant))
   const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) return 'overdue'
@@ -675,8 +705,8 @@ export function compareTenants(a, b) {
   if (a.status === 'paid') {
     return (b.paidDate || '').localeCompare(a.paidDate || '') || a.dueDate.localeCompare(b.dueDate)
   }
-  const dueA = a.priorUnpaidMonths?.[0]?.dueDate ?? a.dueDate
-  const dueB = b.priorUnpaidMonths?.[0]?.dueDate ?? b.dueDate
+  const dueA = a.priorUnpaidMonths?.[0]?.dueDate ?? a.statusDate ?? a.dueDate
+  const dueB = b.priorUnpaidMonths?.[0]?.dueDate ?? b.statusDate ?? b.dueDate
   return dueA.localeCompare(dueB)
 }
 
@@ -760,7 +790,14 @@ export function getAllTenants(monthKey = getMonthKey()) {
         priorUnpaidMonths,
         totalOwed: balance + priorArrears,
       }
-      return { ...enriched, status: getStatusForTenant(enriched) }
+      return {
+        ...enriched,
+        // Scheduled (or past) move-out of this tenant; information only, never changes the status
+        moveOutDate: tenant.moveOut ?? null,
+        // Date the status is measured against: the promised balance date while it lies ahead, else the due date
+        statusDate: getStatusDate(enriched),
+        status: getStatusForTenant(enriched),
+      }
     })
     .sort(compareTenants)
 }
