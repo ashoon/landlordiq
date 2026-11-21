@@ -3,6 +3,7 @@ import {
   getAllTenants,
   compareTenants,
   setPaymentStatus,
+  waiveBalance,
   recordPartialPayment,
   setPaidDate,
   setDueDate,
@@ -92,6 +93,16 @@ export default function Dashboard({ month, onStatsChange, onSelectMonth }) {
     } else {
       setPinned(null)
     }
+    setRefreshKey((k) => k + 1)
+    onStatsChange?.()
+  }
+
+  // Forgives the rest of the month's rent; the tile moves to the paid section like a paid one
+  function handleWaive(id) {
+    if (!waiveBalance(id, month)) return
+    const fresh = [...getAllTenants(month), ...getLoanRowsForMonth(month)].sort(compareTenants)
+    const current = pinned ? sortByOrder(fresh, pinned.ids) : fresh
+    setPinned({ month, ids: idsWithFirstInStatus(current, id) })
     setRefreshKey((k) => k + 1)
     onStatsChange?.()
   }
@@ -197,6 +208,7 @@ export default function Dashboard({ month, onStatsChange, onSelectMonth }) {
               insight={unit.isLoan ? undefined : insightMap.get(unit.payKey ?? unit.id)}
               onTogglePaid={handleTogglePaid}
               onRecordPayment={handleRecordPayment}
+              onWaive={handleWaive}
               onPaidDateChange={handlePaidDateChange}
               onDueDateChange={handleDueDateChange}
               onBalanceDueDateChange={handleBalanceDueDateChange}

@@ -23,6 +23,8 @@ import EditableDate from './EditableDate.jsx'
  * pre-fills it with the days the payment covers, counted from the due date (or today if later). While that date lies ahead the status is
  * measured against it instead of the due date (the real due date is unchanged); it turns red once passed.
  * A tenant with a move-out date gets a neutral "Moving out" tag (sky); it never changes the status.
+ * The payment panel can also "Waive" the remaining balance of a rent month (not loans): the card turns paid-green with a
+ * "Waived" badge, and "Undo waiver" brings the balance back.
  * A vacant tile shows an editable target move-in date until a move-in is scheduled; unit and tenant
  * notes and the services the tenant pays separately (edited in Manage Units) are shown at the bottom of the tile.
  *
@@ -34,6 +36,7 @@ import EditableDate from './EditableDate.jsx'
  *   insight?: Object,
  *   onTogglePaid: (id: string, paid: boolean) => void,
  *   onRecordPayment: (id: string, amount: number, balanceDueDate: string) => void,
+ *   onWaive: (id: string) => void,
  *   onPaidDateChange: (id: string, date: string) => void,
  *   onDueDateChange: (id: string, date: string) => void,
  *   onBalanceDueDateChange: (id: string, date: string) => void,
@@ -46,6 +49,7 @@ export default function UnitCard({
   insight,
   onTogglePaid,
   onRecordPayment,
+  onWaive,
   onPaidDateChange,
   onDueDateChange,
   onBalanceDueDateChange,
@@ -91,8 +95,10 @@ export default function UnitCard({
     vacant: 'bg-gray-100 text-gray-600',
   }
 
+  const isWaived = unit.status !== 'vacant' && unit.waivedAmount > 0
+
   const badgeLabels = {
-    paid: t('Paid'),
+    paid: isWaived ? t('Waived') : t('Paid'),
     'due-soon': t('Due Soon'),
     upcoming: t('Upcoming'),
     overdue: t('Overdue'),
@@ -342,7 +348,12 @@ export default function UnitCard({
               ariaLabel={`${t('Due date')}, ${unit.tenantName}`}
             />
           </div>
-          {unit.status === 'paid' && unit.paidDate && (
+          {isWaived && (
+            <p className="mt-1 text-xs font-medium text-green-700">
+              {t('Waived')} {formatCurrency(unit.waivedAmount)}
+            </p>
+          )}
+          {unit.status === 'paid' && unit.paidDate && !isWaived && (
             <div className="mt-1">
               <EditableDate
                 label={t('Paid')}
@@ -383,7 +394,13 @@ export default function UnitCard({
               : 'border-gray-400 text-gray-700 hover:bg-surface'
           }`}
         >
-          {unit.status === 'paid' ? t('Mark as Unpaid') : hasPartPayment ? t('Record payment') : t('Mark as Paid')}
+          {isWaived
+            ? t('Undo waiver')
+            : unit.status === 'paid'
+              ? t('Mark as Unpaid')
+              : hasPartPayment
+                ? t('Record payment')
+                : t('Mark as Paid')}
         </button>
       )}
 
@@ -412,6 +429,17 @@ export default function UnitCard({
                   ? `${t('Pay balance')} ${formatCurrency(unit.balance)}`
                   : t('Paid in full')}
           </button>
+          {!unit.isLoan && unit.balance > 0 && (
+            <button
+              onClick={() => {
+                setPaying(false)
+                onWaive(unit.id)
+              }}
+              className="text-xs font-medium px-2 py-1 rounded-md border border-gray-400 text-gray-700 hover:bg-gray-50"
+            >
+              {`${t('Waive balance')} ${formatCurrency(unit.balance)}`}
+            </button>
+          )}
           <label className="text-xs text-gray-600">
             {t('Or part payment (COP mil)')}
             <input

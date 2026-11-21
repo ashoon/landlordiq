@@ -131,7 +131,11 @@ export default function PaymentHistory() {
                           ))}
                     </td>
                     <td className={tdCls}>
-                      {r.daysFromDue !== null ? (
+                      {r.waived > 0 ? (
+                        <span className={`font-medium ${statusStyles.paid}`}>
+                          {t('Waived')} {formatCurrency(r.waived)}
+                        </span>
+                      ) : r.daysFromDue !== null ? (
                         <span className={`font-medium ${r.daysFromDue > 0 ? 'text-gray-700' : statusStyles.paid}`}>
                           {describeTiming(r.daysFromDue)}
                         </span>

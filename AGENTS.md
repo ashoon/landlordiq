@@ -270,6 +270,12 @@ tile in place after a part payment.
   order and "days remaining" use it instead of the due date (`getStatusDate`, row field `statusDate`); the real `dueDate` is
   never changed, so insights and payment history still see the original date. Once it passes unpaid the card is overdue again
   and the date turns red. Marking paid/unpaid clears it; paying in full drops it.
+- **Waived rent:** "Waive balance" in the card's payment panel (`waiveBalance` in `tenants.js`, rent months only, not loans)
+  forgives the unpaid balance of a month: the override stores `waived: <amount>` (plus `paid: false`, `paidDate` = today and any
+  part payments). The row becomes `paid` with `waivedAmount`, `balance` 0 and a "Waived" badge; `getSummaryStats` subtracts the
+  waived amount from `totalExpected` (so it is neither collected nor lowers the collection rate), prior-month arrears skip it,
+  insights ignore the month and payment history shows "Waived <amount>". "Undo waiver" (`setPaymentStatus(id, false)`) clears it.
+
 - **Moving out tag:** rows expose `moveOutDate`; `UnitCard.jsx` shows a neutral sky "Moving out <date>" tag. It never changes status.
 - **Target move-in:** `units.added[].targetMoveIn` (`setTargetMoveIn`), editable on a vacant tile while no move-in is scheduled;
   cleared by `moveInUnit`. The vacant tile already shows days vacant (from the last move-out).

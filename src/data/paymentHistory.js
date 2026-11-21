@@ -61,6 +61,7 @@ export function getHistoryTenants() {
  * @property {number} rentAmount
  * @property {number} amountPaid
  * @property {number} balance
+ * @property {number} waived - rent forgiven for the month (0 when none)
  * @property {'paid'|'due-soon'|'upcoming'|'overdue'} status
  * @property {Array<{ id: string, amount: number, date: string | null }>} payments - dated payments received (a month paid in one go shows one entry)
  * @property {number | null} daysFromDue - paid date minus due date (negative = early); null until paid in full
@@ -84,7 +85,7 @@ export function getPaymentHistory(tenantKey) {
 
     const payments = row.paymentLog.length
       ? row.paymentLog
-      : row.paidCurrentMonth && row.paidDate
+      : row.paidCurrentMonth && row.paidDate && !(row.waivedAmount > 0)
         ? [{ id: `${month}-paid`, amount: row.rentAmount, date: row.paidDate }]
         : []
     rows.push({
@@ -93,9 +94,10 @@ export function getPaymentHistory(tenantKey) {
       rentAmount: row.rentAmount,
       amountPaid: row.amountPaid,
       balance: row.balance,
+      waived: row.waivedAmount ?? 0,
       status: row.status,
       payments,
-      daysFromDue: row.paidCurrentMonth && row.paidDate ? daysBetween(row.dueDate, row.paidDate) : null,
+      daysFromDue: row.paidCurrentMonth && row.paidDate && !(row.waivedAmount > 0) ? daysBetween(row.dueDate, row.paidDate) : null,
     })
   }
 
@@ -103,7 +105,7 @@ export function getPaymentHistory(tenantKey) {
   const today = getTodayIso()
   const totals = {
     months: counted.length,
-    expected: counted.reduce((sum, r) => sum + r.rentAmount, 0),
+    expected: counted.reduce((sum, r) => sum + r.rentAmount - r.waived, 0),
     paid: rows.reduce((sum, r) => sum + r.amountPaid, 0),
     // Only rent that is already past its due date counts as owed
     owed: counted.filter((r) => r.dueDate < today).reduce((sum, r) => sum + r.balance, 0),

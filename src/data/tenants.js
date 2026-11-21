@@ -671,7 +671,7 @@ function getPriorUnpaidForTenant(unit, tenant, priorMonths, overrides, stored) {
     if (occKey !== tenantKey) continue
 
     const override = normalizeOverride(overrides[`${mKey}:${tenantKey}`])
-    const paid = override?.paid ?? false
+    const paid = override?.paid || override?.waived > 0
     if (paid) continue
 
     const entries = paymentEntries(override)
@@ -765,13 +765,15 @@ export function getAllTenants(monthKey = getMonthKey()) {
       // A due date changed for this month only wins over the tenant's usual due day
       const dueDate = override?.dueDate ?? occupant.dueDate
 
-      const paid = override?.paid ?? false
-      const paidDate = paid ? override.paidDate : null
+      // A waived month (the landlord forgave the rest of the rent) is settled, like a paid one
+      const waivedAmount = override?.waived > 0 ? override.waived : 0
+      const paid = (override?.paid ?? false) || waivedAmount > 0
+      const paidDate = paid ? (override?.paidDate ?? null) : null
       // Part payments keep the unit unpaid (status follows the due date) but count toward collected
       const entries = paymentEntries(override)
       const received = entries.reduce((sum, p) => sum + p.amount, 0)
-      const amountPaid = paid ? tenant.rentAmount : Math.min(received, tenant.rentAmount)
-      const balance = tenant.rentAmount - amountPaid
+      const amountPaid = override?.paid ? tenant.rentAmount : Math.min(received, tenant.rentAmount)
+      const balance = paid ? 0 : tenant.rentAmount - amountPaid
 
       const { priorArrears, priorUnpaidMonths } = getPriorUnpaidForTenant(unit, tenant, priorMonths, overrides, stored)
 
@@ -784,6 +786,7 @@ export function getAllTenants(monthKey = getMonthKey()) {
         paidDate,
         paymentLog: entries,
         amountPaid,
+        waivedAmount,
         balance,
         daysCovered: daysCoveredBy(amountPaid, tenant.rentAmount),
         priorArrears,
@@ -838,7 +841,8 @@ export function getSummaryStats(monthKey) {
         acc.vacancyLoss += t.rentAmount
         return acc
       }
-      acc.totalExpected += t.rentAmount
+      // Waived rent is never expected, so it neither counts as collected nor lowers the collection rate
+      acc.totalExpected += t.rentAmount - (t.waivedAmount ?? 0)
       // Part payments count as collected; only the unpaid balance stays in the status bucket
       acc.totalCollected += t.amountPaid
       if (t.status === 'paid') {
@@ -901,7 +905,7 @@ export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
     const tenant = tenants.find((t) => t.id === id)
     if (tenant && tenant.priorUnpaidMonths?.length > 0) {
       for (const prior of tenant.priorUnpaidMonths) {
-        const { amountPaid: _total, balanceDue: _due, payments: history, ...currentPrior } =
+        const { amountPaid: _total, balanceDue: _due, waived: _waived, payments: history, ...currentPrior } =
           readPayment(overrides, id, prior.month) ?? {}
         if (history?.length) currentPrior.payments = history
         overrides[paymentKey(id, prior.month)] = {
@@ -912,10 +916,31 @@ export function setPaymentStatus(id, paid, monthKey = getMonthKey()) {
       }
     }
   }
-  const { amountPaid: _total, balanceDue: _due, payments: history, ...current } = readPayment(overrides, id, monthKey) ?? {}
-  if (paid && history?.length) current.payments = history
+  const { amountPaid: _total, balanceDue: _due, waived, payments: history, ...current } =
+    readPayment(overrides, id, monthKey) ?? {}
+  // Undoing a waiver keeps the payments that were received before it
+  if ((paid || waived > 0) && history?.length) current.payments = history
   overrides[paymentKey(id, monthKey)] = { ...current, paid, paidDate: paid ? toIso(new Date()) : null }
   setData('payments', overrides)
+}
+
+/**
+ * Waives the rest of a month's rent: the landlord forgives the unpaid balance (e.g. a tenant who moves out
+ * part-way through the month). The month becomes settled (shown as "Waived"), the waived amount is no longer
+ * expected, and nothing is counted as collected for it. Marking the month unpaid undoes it.
+ *
+ * @param {string} id - Tenant ID (e.g. "T01")
+ * @param {string} [monthKey] - defaults to the current month
+ * @returns {boolean} true when something was waived
+ */
+export function waiveBalance(id, monthKey = getMonthKey()) {
+  const row = getAllTenants(monthKey).find((r) => r.id === id)
+  if (!row || row.status === 'vacant' || row.paidCurrentMonth || !(row.balance > 0)) return false
+  const overrides = getData('payments')
+  const { balanceDue: _due, ...current } = readPayment(overrides, id, monthKey) ?? { paid: false, paidDate: null }
+  overrides[paymentKey(id, monthKey)] = { ...current, paid: false, paidDate: toIso(new Date()), waived: row.balance }
+  setData('payments', overrides)
+  return true
 }
 
 /**

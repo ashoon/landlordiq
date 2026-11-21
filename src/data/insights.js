@@ -207,6 +207,8 @@ export function getTenantInsights(endMonthKey = getMonthKey()) {
         entry.balance = row.balance
       }
 
+      // Waived rent says nothing about how the tenant pays
+      if (row.waivedAmount > 0) continue
       if (!isJudged(row)) continue
 
       entry.judged += 1
