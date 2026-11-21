@@ -268,6 +268,7 @@ export function getFinancials(monthKey) {
       month: key,
       label: capitalize(formatLocaleDate(date, { month: 'short' })),
       rentExpected: stats.totalExpected,
+      rentWaived: stats.totalWaived,
       rentCollected: stats.totalCollected,
       rentDueSoon: stats.totalDueSoon,
       rentUpcoming: stats.totalUpcoming,

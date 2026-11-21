@@ -5,7 +5,7 @@ import { getChartColors } from '../../data/theme.js'
 
 /**
  * RentBarChart — expected rent vs collected / due soon / upcoming / overdue for the last 6 months.
- * Collected, Due Soon, Upcoming and Overdue are stacked and sum to the Expected figure;
+ * Collected, Waived, Due Soon, Upcoming and Overdue are stacked and sum to the Expected figure;
  * Vacancy Loss (rent of empty units, not part of Expected) is a separate bar.
  *
  * @param {{ months: Array<Object> }} props
@@ -16,6 +16,7 @@ export default function RentBarChart({ months }) {
     name: m.label,
     [t('Expected')]: m.rentExpected,
     [t('Collected')]: m.rentCollected,
+    [t('Waived')]: m.rentWaived,
     [t('Due Soon')]: m.rentDueSoon,
     [t('Upcoming')]: m.rentUpcoming,
     [t('Overdue')]: m.rentOverdue,
@@ -43,6 +44,7 @@ export default function RentBarChart({ months }) {
           <Legend wrapperStyle={{ color: c.axis, fontSize: 13 }} />
           <Bar dataKey={t('Expected')} fill={c.expected} radius={[3, 3, 0, 0]} />
           <Bar dataKey={t('Collected')} stackId="status" fill={c.paid} />
+          <Bar dataKey={t('Waived')} stackId="status" fill={c.waived} />
           <Bar dataKey={t('Due Soon')} stackId="status" fill={c.dueSoon} />
           <Bar dataKey={t('Upcoming')} stackId="status" fill={c.upcoming} />
           <Bar dataKey={t('Overdue')} stackId="status" fill={c.overdue} radius={[3, 3, 0, 0]} />

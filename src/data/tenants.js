@@ -825,9 +825,10 @@ export function getTenantsByStatus(status, monthKey) {
  * Vacant units count toward `total` but not `totalExpected`; their rent is `vacancyLoss`.
  *
  * Partial payments count as collected; the unpaid balance stays in the unit's status bucket.
+ * Waived rent stays in `totalExpected` and is reported as `totalWaived` (not collected).
  *
  * @returns {{ total: number, vacant: number, vacancyLoss: number, paid: number, dueSoon: number, upcoming: number, overdue: number,
- *             totalExpected: number, totalCollected: number,
+ *             totalExpected: number, totalWaived: number, totalCollected: number,
  *             totalDueSoon: number, totalUpcoming: number, totalOverdue: number }}
  */
 export function getSummaryStats(monthKey) {
@@ -841,8 +842,9 @@ export function getSummaryStats(monthKey) {
         acc.vacancyLoss += t.rentAmount
         return acc
       }
-      // Waived rent is never expected, so it neither counts as collected nor lowers the collection rate
-      acc.totalExpected += t.rentAmount - (t.waivedAmount ?? 0)
+      acc.totalExpected += t.rentAmount
+      // Waived rent stays in the expected total; it is shown separately and is not collected
+      acc.totalWaived += t.waivedAmount ?? 0
       // Part payments count as collected; only the unpaid balance stays in the status bucket
       acc.totalCollected += t.amountPaid
       if (t.status === 'paid') {
@@ -868,6 +870,7 @@ export function getSummaryStats(monthKey) {
       upcoming: 0,
       overdue: 0,
       totalExpected: 0,
+      totalWaived: 0,
       totalCollected: 0,
       totalDueSoon: 0,
       totalUpcoming: 0,

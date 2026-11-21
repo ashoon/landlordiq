@@ -37,6 +37,11 @@ export default function SummaryStrip({ refreshKey, month }) {
         <span className="font-semibold text-gray-900">{formatCurrencyMil(stats.totalCollected)}</span>
         {' / '}
         {formatCurrencyMil(stats.totalExpected)} {t('expected')}
+        {stats.totalWaived > 0 && (
+          <span className="ml-3 text-gray-500 whitespace-nowrap">
+            {t('Waived')}: {formatCurrencyMil(stats.totalWaived)}
+          </span>
+        )}
         {stats.vacancyLoss > 0 && (
           <span className="ml-3 text-gray-500 whitespace-nowrap">
             {t('Vacancy loss:')} {formatCurrencyMil(stats.vacancyLoss)}

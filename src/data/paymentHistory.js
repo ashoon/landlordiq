@@ -105,7 +105,7 @@ export function getPaymentHistory(tenantKey) {
   const today = getTodayIso()
   const totals = {
     months: counted.length,
-    expected: counted.reduce((sum, r) => sum + r.rentAmount - r.waived, 0),
+    expected: counted.reduce((sum, r) => sum + r.rentAmount, 0),
     paid: rows.reduce((sum, r) => sum + r.amountPaid, 0),
     // Only rent that is already past its due date counts as owed
     owed: counted.filter((r) => r.dueDate < today).reduce((sum, r) => sum + r.balance, 0),
