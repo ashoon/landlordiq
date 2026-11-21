@@ -276,7 +276,7 @@ tile in place after a part payment.
   rent; `getSummaryStats` reports the waived part as `totalWaived` (not collected; shown in the summary strip and as a violet
   "Waived" bar in the rent chart), so the collection rate still shows the shortfall. Prior-month arrears skip it,
   insights ignore the month and payment history shows "Waived <amount>". "Undo waiver" (`setPaymentStatus(id, false)`) clears it.
-- **Moving out tag:** rows expose `moveOutDate`; `UnitCard.jsx` shows a neutral sky "Moving out <date>" tag. It never changes status.
+- **Moving out tag:** rows expose `moveOutDate`; `UnitCard.jsx` shows a neutral sky "Moving out <date>" tag. It never changes status. Waived tiles (`waivedAmount > 0`) are violet (`violet-50/500/700/800` variables) instead of green, but still count as `paid` for sorting, filters and stats.
 - **Target move-in:** `units.added[].targetMoveIn` (`setTargetMoveIn`), editable on a vacant tile while no move-in is scheduled;
   cleared by `moveInUnit`. The vacant tile already shows days vacant (from the last move-out).
 - **Notes:** `unitNote` lives on the unit (stays with the address), `tenantNote` on the tenancy (goes with the tenant). Both are

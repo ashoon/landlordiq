@@ -23,8 +23,8 @@ import EditableDate from './EditableDate.jsx'
  * pre-fills it with the days the payment covers, counted from the due date (or today if later). While that date lies ahead the status is
  * measured against it instead of the due date (the real due date is unchanged); it turns red once passed.
  * A tenant with a move-out date gets a neutral "Moving out" tag (sky); it never changes the status.
- * The payment panel can also "Waive" the remaining balance of a rent month (not loans): the card turns paid-green with a
- * "Waived" badge, and "Undo waiver" brings the balance back.
+ * The payment panel can also "Waive" the remaining balance of a rent month (not loans): the card turns violet with a
+ * "Waived" badge (it still sorts with the paid tiles), and "Undo waiver" brings the balance back.
  * A vacant tile shows an editable target move-in date until a move-in is scheduled; unit and tenant
  * notes and the services the tenant pays separately (edited in Manage Units) are shown at the bottom of the tile.
  *
@@ -79,8 +79,12 @@ export default function UnitCard({
   const balanceDueValue = balanceDueText ?? suggestedBalanceDate
   const hasPartPayment = unit.status !== 'vacant' && unit.status !== 'paid' && unit.amountPaid > 0
 
+  const isWaived = unit.status !== 'vacant' && unit.waivedAmount > 0
+
   const statusStyles = {
-    paid: 'border border-l-4 border-green-500 bg-green-50',
+    paid: isWaived
+      ? 'border border-l-4 border-violet-500 bg-violet-50'
+      : 'border border-l-4 border-green-500 bg-green-50',
     'due-soon': 'border border-l-4 border-amber-400 bg-amber-50',
     upcoming: 'border border-l-4 border-gray-300 bg-gray-50',
     overdue: 'border border-l-4 border-red-500 bg-red-50',
@@ -88,14 +92,12 @@ export default function UnitCard({
   }
 
   const badgeStyles = {
-    paid: 'bg-green-100 text-green-800',
+    paid: isWaived ? 'bg-violet-100 text-violet-800' : 'bg-green-100 text-green-800',
     'due-soon': 'bg-amber-100 text-amber-800',
     upcoming: 'bg-gray-200 text-gray-700',
     overdue: 'bg-red-100 text-red-800',
     vacant: 'bg-gray-100 text-gray-600',
   }
-
-  const isWaived = unit.status !== 'vacant' && unit.waivedAmount > 0
 
   const badgeLabels = {
     paid: isWaived ? t('Waived') : t('Paid'),
@@ -349,7 +351,7 @@ export default function UnitCard({
             />
           </div>
           {isWaived && (
-            <p className="mt-1 text-xs font-medium text-green-700">
+            <p className="mt-1 text-xs font-medium text-violet-700">
               {t('Waived')} {formatCurrency(unit.waivedAmount)}
             </p>
           )}
@@ -389,9 +391,11 @@ export default function UnitCard({
         <button
           onClick={() => (unit.status === 'paid' ? onTogglePaid(unit.id, false) : setPaying(true))}
           className={`mt-auto text-xs font-medium px-3 py-1.5 rounded-md border transition-colors ${
-            unit.status === 'paid'
-              ? 'border-green-500 text-green-700 hover:bg-green-100'
-              : 'border-gray-400 text-gray-700 hover:bg-surface'
+            isWaived
+              ? 'border-violet-500 text-violet-700 hover:bg-violet-100'
+              : unit.status === 'paid'
+                ? 'border-green-500 text-green-700 hover:bg-green-100'
+                : 'border-gray-400 text-gray-700 hover:bg-surface'
           }`}
         >
           {isWaived

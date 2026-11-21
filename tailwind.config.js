@@ -46,7 +46,7 @@ export default {
         green: { 50: v('green-50'), 100: v('green-100'), 700: v('green-700'), 800: v('green-800') },
         amber: { 50: v('amber-50'), 100: v('amber-100'), 600: v('amber-600'), 800: v('amber-800') },
         red: { 50: v('red-50'), 100: v('red-100'), 600: v('red-600'), 800: v('red-800') },
-        violet: { 100: v('violet-100'), 800: v('violet-800') },
+        violet: { 50: v('violet-50'), 100: v('violet-100'), 500: v('violet-500'), 700: v('violet-700'), 800: v('violet-800') },
         sky: { 100: v('sky-100'), 800: v('sky-800') },
       },
     },
