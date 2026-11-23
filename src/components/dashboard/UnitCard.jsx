@@ -7,7 +7,7 @@ import {
   getSuggestedBalanceDate,
   DAYS_PER_MONTH,
 } from '../../data/tenants.js'
-import { formatCurrency, milToAmount } from '../../data/currency.js'
+import { formatCurrency, milToAmount, amountToMil } from '../../data/currency.js'
 import { t, formatMonthShort } from '../../data/i18n.js'
 import EditableDate from './EditableDate.jsx'
 
@@ -450,6 +450,7 @@ export default function UnitCard({
               type="number"
               inputMode="decimal"
               min="0"
+              max={amountToMil(unit.rentAmount * 3)}
               step="5"
               value={amountText}
               onChange={(e) => setAmountText(e.target.value)}
@@ -458,6 +459,9 @@ export default function UnitCard({
               className="mt-0.5 w-full min-w-0 px-1.5 py-1 rounded border border-gray-300 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </label>
+          {amountText !== '' && Number.isFinite(milToAmount(amountText)) && (
+            <p className="text-xs text-gray-500 -mt-0.5">= {formatCurrency(milToAmount(amountText))}</p>
+          )}
           {preview && (
             <p className="text-xs text-gray-700">
               {unit.priorArrears > 0 ? (
